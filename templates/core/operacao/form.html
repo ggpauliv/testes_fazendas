@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilo para parecer botões */
+    #div_id_aux_categoria>div {
+        display: flex;
+        gap: 10px;
+    }
+
+    .form-check-inline {
+        margin-right: 0;
+    }
+
+    #btn-add-talhao {
+        height: 38px;
+    }
+</style>
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'operacao_list' %}">Operações</a></li>
+                    <li class="breadcrumb-item active">{{ titulo }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold"><i class="bi bi-gear text-warning me-2"></i>{{ titulo }}</h1>
+            <p class="text-muted">Registre a aplicação de insumos, serviços e atividades no campo.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // =========================================================================
+        // 1. LÓGICA DE ITENS (NOVO)
+        // =========================================================================
+        const itemsData = [];
+        const itensJsonInput = document.getElementById('id_itens_json');
+        const tableBodyItens = document.querySelector('#table-itens-selecionados tbody');
+        
+        // Elementos do Form Auxiliar (Crispy renderiza com IDs padrão)
+        const elAtividade = document.getElementById('id_atividade_selector');
+        const elCategoria = document.getElementById('id_aux_categoria');
+        const elProduto = document.getElementById('id_produto_selector');
+        const elDescricao = document.getElementById('id_aux_descricao');
+        const elQtd = document.getElementById('id_aux_quantidade');
+        const elCusto = document.getElementById('id_aux_custo_unitario');
+        const elMaq = document.getElementById('id_aux_maquinario_terceiro');
+        const btnAddItem = document.getElementById('btn-add-item');
+
+        const divProduto = document.getElementById('div_id_produto_selector');
+        const divDescricao = document.getElementById('div_id_aux_descricao');
+
+        // Toggle Categoria
+        function toggleCategory() {
+            if (!elCategoria) return;
+            const cat = elCategoria.value;
+            
+            const colProduto = document.querySelector('.field-produto');
+            const colDescricao = document.querySelector('.field-descricao');
+
+            const toggle = (el, show) => {
+                if (el) el.style.display = show ? 'block' : 'none';
+            };
+
+            if (cat === 'INSUMO') {
+                toggle(colProduto, true);
+                toggle(colDescricao, false);
+            } else {
+                toggle(colProduto, false);
+                toggle(colDescricao, true);
+            }
+        }
+        if (elCategoria) {
+            elCategoria.addEventListener('change', toggleCategory);
+            toggleCategory(); // Init
+        }
+
+        function formatNumberBr(value) {
+            if (!value && value !== 0) return '0,000';
+            const number = parseFloat(value);
+            if (isNaN(number)) return '0,000';
+            // Formato PT-BR com 3 casas decimais
+            return number.toLocaleString('pt-BR', {
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3
+            });
+        }
+
+        function renderItems() {
+            tableBodyItens.innerHTML = '';
+            itemsData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                let detalhe = item.descricao || '-';
+                if (item.produto_id) {
+                    detalhe = item.produto_nome || 'Produto ID ' + item.produto_id;
+                }
+
+                const labelQtd = (String(item.is_quantidade_total) === 'True' || item.is_quantidade_total === true) ? '(Total)' : '/ ha';
+                const labelCusto = (String(item.is_custo_total) === 'True' || item.is_custo_total === true) ? '(Total)' : '/ ha';
+
+                row.innerHTML = `
+                    <td>${item.atividade_nome}</td>
+                    <td>${detalhe}</td>
+                    <td class="text-center"><span class="badge bg-light text-dark border">${item.categoria}</span></td>
+                    <td class="text-end">
+                        ${formatNumberBr(item.quantidade)} <small class="text-muted">${labelQtd}</small>
+                    </td>
+                    <td class="text-end">
+                        ${formatNumberBr(item.custo_unitario)} 
+                        <small class="text-muted">${item.unidade_custo || 'BRL'}</small>
+                        <small class="text-muted">${labelCusto}</small>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-item" data-index="${index}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBodyItens.appendChild(row);
+            });
+            
+            // Atualizar botões de remover
+            document.querySelectorAll('.btn-remove-item').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    itemsData.splice(idx, 1);
+                    updateItemsJson();
+                    renderItems();
+                });
+            });
+        }
+
+        function updateItemsJson() {
+            if (itensJsonInput) {
+                itensJsonInput.value = JSON.stringify(itemsData);
+            }
+        }
+
+        if (btnAddItem) {
+            btnAddItem.addEventListener('click', function() {
+                // Validação básica
+                if (!elAtividade.value.trim()) { alert('Informe uma Atividade.'); return; }
+                if (!elQtd.value || parseFloat(elQtd.value) <= 0) { alert('Informe uma quantidade válida.'); return; }
+
+                const cat = elCategoria.value;
+                if (cat === 'INSUMO' && !elProduto.value) { alert('Selecione um Produto.'); return; }
+                if (cat !== 'INSUMO' && !elDescricao.value) { alert('Informe uma descrição.'); return; }
+
+                const elUnidadeCusto = document.getElementById('id_aux_unidade_custo');
+                const elIsQtdTotal = document.getElementById('id_aux_is_quantidade_total');
+                const elIsCustoTotal = document.getElementById('id_aux_is_custo_total');
+                
+                const newItem = {
+                    atividade_id: null, // Input de texto não tem ID prévio
+                    atividade_nome: elAtividade.value,
+                    categoria: cat,
+                    produto_id: (cat === 'INSUMO') ? elProduto.value : null,
+                    produto_nome: (cat === 'INSUMO') ? elProduto.options[elProduto.selectedIndex].text : '',
+                    descricao: (cat !== 'INSUMO') ? elDescricao.value : '',
+                    quantidade: elQtd.value,
+                    custo_unitario: elCusto.value || 0,
+                    maquinario_terceiro: elMaq.checked,
+                    is_quantidade_total: elIsQtdTotal ? elIsQtdTotal.value : false, 
+                    is_custo_total: elIsCustoTotal ? elIsCustoTotal.value : false,
+                    unidade_custo: elUnidadeCusto ? elUnidadeCusto.value : 'BRL'
+                };
+
+                itemsData.push(newItem);
+                updateItemsJson();
+                renderItems();
+
+                // Reset inputs
+                elAtividade.value = '';
+                elProduto.value = '';
+                elDescricao.value = '';
+                elQtd.value = '';
+                elCusto.value = '';
+                elMaq.checked = false;
+                // Keep selections for unit/type as user might add multiple similar items
+            });
+        }
+
+        // CARREGAR ITENS EXISTENTES (EDIT MODE)
+        {% if operacao %}
+        try {
+            const existing = [
+            {% for item in operacao.itens.all %}
+                {
+                    atividade_id: "{{ item.atividade.id }}",
+                    atividade_nome: "{{ item.atividade.nome|escapejs }}",
+                    categoria: "{{ item.categoria }}",
+                    produto_id: "{{ item.produto.id|default:'' }}",
+                    produto_nome: "{{ item.produto.nome|default:''|escapejs }}",
+                    descricao: "{{ item.descricao|default:''|escapejs }}",
+                    quantidade: "{{ item.quantidade|stringformat:'f' }}",
+                    custo_unitario: "{{ item.custo_unitario|stringformat:'f' }}",
+                    maquinario_terceiro: {{ item.maquinario_terceiro|yesno:"true,false" }},
+                    id: {{ item.id }},
+                    unidade_custo: "{{ item.unidade_custo|default:'BRL' }}",
+                    is_quantidade_total: "{{ item.is_quantidade_total|yesno:'True,False' }}",
+                    is_custo_total: "{{ item.is_custo_total|yesno:'True,False' }}"
+                },
+            {% endfor %}
+            ];
+            existing.forEach(i => itemsData.push(i));
+            updateItemsJson();
+            renderItems();
+
+        } catch(e) { console.error("Erro ao carregar itens existentes", e); }
+        {% endif %}
+
+
+        // =========================================================================
+        // 2. LÓGICA DE TALHÕES (PRESERVADA/ADAPTADA)
+        // =========================================================================
+        let talhoesData = [];
+        try { talhoesData = JSON.parse('{{ talhoes_json|safe }}'); } catch (e) {}
+
+        let busyTalhoes = {};
+        try { busyTalhoes = JSON.parse('{{ busy_talhoes_json|safe }}'); } catch (e) {}
+
+        let ciclosData = [];
+        try { ciclosData = JSON.parse('{{ ciclos_json|safe }}'); } catch (e) {}
+
+        const safraSelector = document.getElementById('id_safra');
+        const cicloSelector = document.getElementById('id_ciclo');
+        const fazendaSelector = document.getElementById('id_fazenda_selector');
+        const talhaoSelector = document.getElementById('id_talhao_selector');
+        const btnAddTalhao = document.getElementById('btn-add-talhao');
+        const tableBodyTalhoes = document.querySelector('#table-talhoes-selecionados tbody');
+        const hiddenSelectTalhoes = document.getElementById('id_talhoes');
+        const displayAreaTotal = document.getElementById('display-area-total');
+        const inputAreaAplicada = document.getElementById('id_area_aplicada_ha');
+
+        const talhoesMap = {};
+        talhoesData.forEach(t => { talhoesMap[t.id] = t; });
+
+        function getSelectedTalhoesIds() {
+            return Array.from(hiddenSelectTalhoes.options)
+                .filter(opt => opt.selected)
+                .map(opt => parseInt(opt.value));
+        }
+
+        function refreshTalhaoOptions() {
+            if (!fazendaSelector || !talhaoSelector) return;
+            const fazendaId = fazendaSelector.value;
+            talhaoSelector.innerHTML = '<option value="">Selecione o Talhão</option>';
+            
+            if (!fazendaId) {
+                talhaoSelector.innerHTML = '<option value="">Selecione a Fazenda primeiro</option>';
+                return;
+            }
+
+            const filtrados = talhoesData.filter(t => t.fazenda_id == fazendaId);
+            const selectedIds = getSelectedTalhoesIds();
+            const selectedObjs = talhoesData.filter(t => selectedIds.includes(t.id));
+
+            const disponiveis = filtrados.filter(candidate => {
+                // 1. Já selecionado
+                if (selectedIds.includes(candidate.id)) return false;
+
+                // 2. Verificar conflito Pai <-> Filho
+                
+                // A. Candidato é Pai de alguém já selecionado?
+                // Se algum selecionado tiver parent_id == candidate.id
+                const isParentOfSelected = selectedObjs.some(sel => sel.parent_id === candidate.id);
+                if (isParentOfSelected) return false;
+
+                // B. Candidato é Filho de alguém já selecionado?
+                // Se o parent_id do candidato estiver nos selecionados
+                if (candidate.parent_id) {
+                    const isChildOfSelected = selectedIds.includes(candidate.parent_id);
+                    if (isChildOfSelected) return false;
+                }
+
+                return true;
+            });
+
+            if (disponiveis.length > 0) {
+                disponiveis.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.nome;
+                    talhaoSelector.appendChild(option);
+                });
+            } else {
+                 const option = document.createElement('option');
+                 option.textContent = "Nenhum disponível";
+                 talhaoSelector.appendChild(option);
+            }
+        }
+
+        if (fazendaSelector) fazendaSelector.addEventListener('change', refreshTalhaoOptions);
+
+        function adicionarTalhao(id, skipUpdate = false) {
+            const talhaoId = parseInt(id);
+            if (getSelectedTalhoesIds().includes(talhaoId)) return;
+
+            const talhao = talhoesMap[talhaoId];
+            if (!talhao) return;
+
+            // Render Row
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', talhao.id);
+            row.innerHTML = `
+                <td>${talhao.fazenda__nome || '-'}</td>
+                <td>${talhao.nome}</td>
+                <td class="text-end">${parseFloat(talhao.area_hectares).toLocaleString('pt-BR')}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-talhao">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBodyTalhoes.appendChild(row);
+
+            // Update Hidden Select
+            let opt = Array.from(hiddenSelectTalhoes.options).find(o => o.value == talhaoId);
+            if (!opt) {
+                opt = new Option(talhao.nome, talhaoId, true, true);
+                hiddenSelectTalhoes.add(opt);
+            }
+            opt.selected = true;
+
+            row.querySelector('.btn-remove-talhao').addEventListener('click', function() {
+                row.remove();
+                if (opt) opt.selected = false;
+                updateTotals();
+                refreshTalhaoOptions();
+            });
+
+            if (!skipUpdate) {
+                updateTotals();
+                refreshTalhaoOptions();
+            }
+        }
+
+        if (btnAddTalhao) {
+            btnAddTalhao.addEventListener('click', function() {
+                const val = talhaoSelector.value;
+                if(val) adicionarTalhao(val);
+            });
+        }
+
+        function updateTotals() {
+            let totalArea = 0;
+            getSelectedTalhoesIds().forEach(id => {
+                const t = talhoesMap[id];
+                if (t) totalArea += parseFloat(t.area_hectares || 0);
+            });
+            if (displayAreaTotal) displayAreaTotal.textContent = totalArea.toFixed(2);
+            // Input uses '.' internally for numbers
+            if (inputAreaAplicada) inputAreaAplicada.value = totalArea.toFixed(2);
+        }
+
+        // Init: Load Existing Selected Talhoes
+        Array.from(hiddenSelectTalhoes.options).forEach(opt => {
+            if (opt.selected) {
+                adicionarTalhao(opt.value, true);
+            }
+        });
+        updateTotals();
+        refreshTalhaoOptions();
+
+        // =========================================================================
+        // 3. LOGICA SAFRA -> CICLO -> FAZENDA -> TALHOES (RECURSIVA)
+        // =========================================================================
+        
+        // Populate Ciclos map and Safra map
+        const ciclosMap = {};
+        ciclosData.forEach(c => ciclosMap[c.id] = c);
+
+        // Filter Ciclos by Safra
+        function filterCiclosBySafra() {
+            if (!safraSelector || !cicloSelector) return;
+            const safraId = safraSelector.value;
+            const currentCicloId = cicloSelector.value;
+            
+            // Clear Ciclos
+            cicloSelector.innerHTML = '<option value="">Selecione o Ciclo (Opcional)</option>';
+            
+            const filtered = ciclosData.filter(c => !safraId || c.safra_id == safraId);
+            
+            filtered.forEach(c => {
+                const opt = new Option(c.nome, c.id);
+                if (c.id == currentCicloId) opt.selected = true;
+                cicloSelector.add(opt);
+            });
+        }
+
+        if (safraSelector) {
+            safraSelector.addEventListener('change', function() {
+                filterCiclosBySafra();
+                // If safra changes, we might want to clear ciclo if it doesn't match?
+                // The filter function handles simple re-selection if id persists, but if id invalid it deselects.
+            });
+            // Initial filter
+            filterCiclosBySafra();
+        }
+
+        // Auto-load Fazenda and Talhoes from Ciclo
+        if (cicloSelector) {
+            cicloSelector.addEventListener('change', function() {
+                const cicloId = this.value;
+                if (!cicloId) return;
+
+                const ciclo = ciclosMap[cicloId];
+                if (!ciclo) return;
+
+                // 1. Set Fazenda (if not manually set or empty?)
+                // Let's force set it as requested: "carregue a fazenda"
+                if (ciclo.fazenda_id && fazendaSelector) {
+                    fazendaSelector.value = ciclo.fazenda_id;
+                    // Trigger change to refresh talhao options basics
+                    // But we will manually refresh later
+                }
+
+                // 2. Clear current talhoes? "ja insira todos... com opcao de remover um ja existente"
+                // Usually this implies replacing current selection or adding to it. 
+                // Let's Clear first to be clean as per "carregue... e insira" implying a set state.
+                tableBodyTalhoes.innerHTML = '';
+                Array.from(hiddenSelectTalhoes.options).forEach(o => o.selected = false);
+                
+                // 3. Insert Talhoes Recursively
+                if (ciclo.talhoes && ciclo.talhoes.length > 0) {
+                    ciclo.talhoes.forEach(tId => {
+                        adicionarTalhao(tId, true); // skip update calls for perf
+                    });
+                }
+
+                // Final updates
+                updateTotals();
+                refreshTalhaoOptions();
+            });
+        }
+    });
+</script>
+{% endblock %}

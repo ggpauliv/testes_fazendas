@@ -1,0 +1,566 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ talhao.nome }}{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'talhao_list' %}">Talhões</a></li>
+                    <li class="breadcrumb-item active">{{ talhao.nome }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="h3 fw-bold">
+                        <i class="bi bi-map text-success me-2"></i>{{ talhao.nome }}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        {{ talhao.area_hectares|floatformat:2 }} hectares
+                        {% if talhao.cultura_atual %}
+                        | <span class="badge bg-success">{{ talhao.cultura_atual }}</span>
+                        {% endif %}
+                        {% if talhao.parent %}
+                        <br><span class="badge bg-secondary">Subtalhão de {{ talhao.parent.nome }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    {% if not talhao.parent %}
+                    <a href="{% url 'subtalhao_create' talhao.pk %}" class="btn btn-outline-primary">
+                        <i class="bi bi-grid-3x3 me-1"></i>Dividir Talhão
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'talhao_edit' talhao.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </a>
+                    <a href="{% url 'operacao_create' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-1"></i>Nova Operação
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Mapa do Talhão -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-geo-alt me-2 text-primary"></i>Localização</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações e Custo -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-info"></i>Informações</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6">Área</dt>
+                        <dd class="col-6">{{ talhao.area_hectares|floatformat:2 }} ha</dd>
+
+                        <dt class="col-6">Cultura Atual</dt>
+                        <dd class="col-6">{{ talhao.cultura_atual|default:'-' }}</dd>
+
+                        <dt class="col-6">Status</dt>
+                        <dd class="col-6">
+                            {% if talhao.ativo %}
+                            <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inativo</span>
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-6">Cadastrado em</dt>
+                        <dd class="col-6">{{ talhao.data_cadastro|date:"d/m/Y" }}</dd>
+                    </dl>
+
+                    {% if talhao.descricao %}
+                    <hr>
+                    <p class="text-muted small mb-0">{{ talhao.descricao }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card de Custo Total -->
+            <div class="card shadow-sm bg-gradient-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">Custo Total</h6>
+                            <h3 class="mb-0 fw-bold">R$ {{ custo_total|floatformat:2 }}</h3>
+                            <small class="opacity-75">Total de todas as operações</small>
+                        </div>
+                        <i class="bi bi-cash-stack fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subtalhões (Visível apenas se não for subtalhão e tiver filhos) -->
+    {% if subtalhoes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3 me-2 text-secondary"></i>Subtalhões (Divisões)</h5>
+                    <a href="{% url 'subtalhao_create' talhao.pk %}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus"></i> Novo
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nome</th>
+                                <th>Área</th>
+                                <th>Cultura</th>
+                                <th>Status</th>
+                                <th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in subtalhoes %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'talhao_detail' sub.pk %}" class="fw-bold text-decoration-none">
+                                        {{ sub.nome }}
+                                    </a>
+                                </td>
+                                <td>{{ sub.area_hectares|floatformat:2 }} ha</td>
+                                <td>{{ sub.cultura_atual|default:'-' }}</td>
+                                <td>
+                                    {% if sub.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <a href="{% url 'talhao_detail' sub.pk %}"
+                                        class="btn btn-sm btn-outline-primary">Ver</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Clima e Solo (Open-Meteo) -->
+    <div class="row mb-4 mt-5" id="weather-section" style="display:none;">
+        <div class="col-12">
+            <!-- Modern Clean Layout: White Card with Primary Accent -->
+            <div class="card shadow-sm border-0 border-start border-4 border-primary bg-white">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0 text-dark">
+                            <i class="bi bi-cloud-rain-heavy me-2 text-primary"></i>Clima & Solo
+                        </h4>
+                        <span
+                            class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-10 rounded-pill px-3">
+                            <i class="bi bi-check-circle me-1"></i>Dados Científicos
+                        </span>
+                    </div>
+
+                    <div class="row g-4 align-items-center">
+                        <!-- Indicadores -->
+                        <div class="col-lg-3 border-end border-light-subtle">
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                                    <i class="bi bi-moisture fs-2 text-primary"></i>
+                                </div>
+                                <div>
+                                    <small class="text-muted text-uppercase fw-bold ls-1"
+                                        style="font-size: 0.75rem;">Umidade do Solo (0-10cm)</small>
+                                    <h2 class="mb-0 fw-bold display-6 text-dark" id="soil-moisture">--%</h2>
+                                    <div id="moisture-alert"
+                                        class="badge bg-danger mt-1 animate__animated animate__pulse animate__infinite"
+                                        style="display:none;">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>Crítico (< 15%) </div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                                        <i class="bi bi-cloud-drizzle fs-2 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <small class="text-muted text-uppercase fw-bold ls-1"
+                                            style="font-size: 0.75rem;">Chuva (30 dias)</small>
+                                        <div class="d-flex align-items-baseline">
+                                            <h2 class="mb-0 fw-bold display-6 text-dark" id="rain-30d">--</h2>
+                                            <span class="text-muted ms-1 fs-5">mm</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Previsão 5 Dias (Novo) -->
+                            <div class="col-lg-5 border-end border-light-subtle">
+                                <h6 class="text-muted fw-bold mb-3 ls-1 text-uppercase" style="font-size: 0.75rem;">
+                                    Previsão (Próx.
+                                    5 Dias)</h6>
+                                <div class="row g-2" id="forecast-container">
+                                    <!-- Cards injetados via JS -->
+                                    <div class="col text-center">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gráfico -->
+                            <div class="col-lg-4">
+                                <div class="rounded-3 p-3 bg-light">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h6 class="text-dark fw-bold mb-0">Balanço Hídrico</h6>
+                                    </div>
+                                    <div style="height: 180px;">
+                                        <canvas id="weatherChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ciclos e Operações -->
+            <div class="row g-4 mt-2">
+                <!-- Ciclos de Produção -->
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Ciclos de Produção</h5>
+                            <a href="{% url 'ciclo_create' %}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-plus"></i>
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if ciclos %}
+                            <div class="list-group list-group-flush">
+                                {% for ciclo in ciclos %}
+                                <a href="{% url 'ciclo_detail' ciclo.pk %}"
+                                    class="list-group-item list-group-item-action">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">{{ ciclo.nome_safra }}</h6>
+                                            <small class="text-muted">{{ ciclo.cultura }} | {{ ciclo.data_plantio|date:"d/m/Y" }}</small>
+                                        </div>
+                                        {% if ciclo.status == 'PLANEJAMENTO' %}
+                                        <span class="badge bg-secondary">Em Planejamento</span>
+                                        {% elif ciclo.status == 'EM_ANDAMENTO' %}
+                                        <span class="badge bg-primary">Em Andamento</span>
+                                        {% elif ciclo.status == 'CONCLUIDO' %}
+                                        <span class="badge bg-success">Concluído</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Cancelado</span>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4 text-muted">
+                                <p class="mb-0">Nenhum ciclo registrado</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Últimas Operações -->
+                <div class="col-lg-6">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-gear me-2 text-warning"></i>Últimas Operações</h5>
+                            <a href="{% url 'operacao_list' %}?talhao={{ talhao.pk }}"
+                                class="btn btn-sm btn-outline-warning">
+                                Ver todas
+                            </a>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if operacoes %}
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Operação</th>
+                                            <th>Produto</th>
+                                            <th>Qtd</th>
+                                            <th>Data</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for op in operacoes %}
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-light text-dark">
+                                                    {% if op.itens.exists %}
+                                                        {{ op.itens.first.atividade.nome }}
+                                                        {% if op.itens.count > 1 %}(+{{ op.itens.count|add:"-1" }}){% endif %}
+                                                    {% else %}
+                                                        Operação #{{ op.id }}
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% with first_item=op.itens.first %}
+                                                    {% if first_item and first_item.produto %}
+                                                        {{ first_item.produto.nome }}
+                                                        {% if op.itens.count > 1 %}...{% endif %}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </td>
+                                            <td>
+                                                {% with first_item=op.itens.first %}
+                                                    {% if first_item %}
+                                                        {{ first_item.quantidade|floatformat:2 }} 
+                                                        {% if first_item.produto %}{{ first_item.produto.unidade }}{% endif %}
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </td>
+                                            <td class="text-muted">{{ op.data_operacao|date:"d/m/Y" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4 text-muted">
+                                <p class="mb-0">Nenhuma operação registrada</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endblock %}
+
+        {% block extra_js %}
+        {{ coordenadas_json|json_script:"talhao-coords-data" }}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            function getTalhaoCoords() {
+                const script = document.getElementById('talhao-coords-data');
+                if (script) {
+                    try {
+                        return JSON.parse(script.textContent);
+                    } catch (e) {
+                        console.error("Error parsing talhao coords", e);
+                        return [];
+                    }
+                }
+                return [];
+            }
+            const coordenadas = getTalhaoCoords();
+
+            function initMap() {
+                let center = [-15.7801, -47.9292];
+                let zoom = 4;
+                let latLngs = [];
+
+                // Verifica se coordenadas existem e converte para formato Leaflet [lat, lng]
+                if (coordenadas && coordenadas.length > 0) {
+                    // Se o primeiro item tem 'lat', é objeto. Caso contrário pode ser array.
+                    if (coordenadas[0].lat !== undefined) {
+                        latLngs = coordenadas.map(c => [c.lat, c.lng]);
+                    } else {
+                        latLngs = coordenadas;
+                    }
+
+                    if (latLngs.length > 0) {
+                        center = latLngs[0];
+                        zoom = 15;
+                    }
+                }
+
+                // Criar Mapa
+                const map = L.map('map').setView(center, zoom);
+
+                // Camada de Satélite
+                L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: 'Tiles &copy; Esri'
+                }).addTo(map);
+
+                // Labels
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(map);
+
+                // Fix visual: Forçar redesenho após carregamento
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 1000);
+                
+                // Garantia extra on load
+                window.addEventListener('load', function() {
+                     setTimeout(function() { map.invalidateSize(); }, 500);
+                });
+
+                // Desenhar Polígono
+                if (latLngs.length > 0) {
+                    const polygon = L.polygon(latLngs, {
+                        color: '#28a745',
+                        fillColor: '#28a745',
+                        fillOpacity: 0.35,
+                        weight: 2
+                    }).addTo(map);
+
+                    map.fitBounds(polygon.getBounds());
+
+                    // Popup simples
+                    polygon.bindPopup("{{ talhao.nome }} - {{ talhao.area_hectares }} ha");
+                }
+            }
+
+            // Carregar Clima
+            function loadWeather() {
+                const url = "{% url 'api_talhao_climatico' talhao.pk %}";
+                fetch(url)
+                    .then(r => {
+                        if (!r.ok) throw new Error('Erro na API');
+                        return r.json();
+                    })
+                    .then(data => {
+                        if (data.error) return;
+
+                        document.getElementById('weather-section').style.display = 'flex';
+
+                        // Animação de entrada
+                        document.getElementById('weather-section').classList.add('animate__animated', 'animate__fadeIn');
+
+                        // Update Indicators
+                        document.getElementById('soil-moisture').innerText = data.current_soil_moisture + '%';
+                        document.getElementById('rain-30d').innerText = data.total_rain_30d + ' mm';
+
+                        // Alert
+                        if (data.current_soil_moisture < 15) {
+                            document.getElementById('moisture-alert').style.display = 'inline-block';
+                        }
+
+                        // Chart
+                        const ctx = document.getElementById('weatherChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: data.chart_data.map(d => d.date),
+                                datasets: [
+                                    {
+                                        label: 'Chuva (mm)',
+                                        data: data.chart_data.map(d => d.precipitation),
+                                        backgroundColor: '#0d6efd',
+                                        borderRadius: 4,
+                                        order: 2
+                                    },
+                                    {
+                                        label: 'Evapotranspiração (ET₀)',
+                                        data: data.chart_data.map(d => d.et0),
+                                        backgroundColor: 'rgba(255, 193, 7, 0.2)',
+                                        borderColor: '#ffc107',
+                                        borderWidth: 2,
+                                        type: 'line',
+                                        pointRadius: 0,
+                                        pointHoverRadius: 4,
+                                        tension: 0.3,
+                                        fill: true,
+                                        order: 1
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        mode: 'index',
+                                        intersect: false
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: {
+                                            borderDash: [2, 2]
+                                        }
+                                    },
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        // Render Forecast
+                        if (data.forecast && data.forecast.length > 0) {
+                            const forecastContainer = document.getElementById('forecast-container');
+                            forecastContainer.innerHTML = '';
+
+                            data.forecast.forEach((day, index) => {
+                                const card = `
+                                    <div class="col">
+                                        <div class="text-center p-2 rounded-3 border h-100 d-flex flex-column justify-content-between ${index === 0 ? 'bg-primary bg-opacity-10 border-primary border-opacity-25' : 'bg-light border-light-subtle'}">
+                                            <div>
+                                                <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">${day.weekday}</small>
+                                                <span class="d-block fw-bold text-dark mb-1" style="font-size: 0.8rem;">${day.date}</span>
+                                            </div>
+                                            <i class="bi ${day.icon} fs-4 text-primary mb-1 d-block" title="${day.desc}"></i>
+                                            <div>
+                                                <div class="d-flex justify-content-center align-items-center small fw-bold">
+                                                    <span class="text-danger me-1">${day.max}°</span>
+                                                    <span class="text-secondary opacity-50">/</span>
+                                                    <span class="text-info ms-1">${day.min}°</span>
+                                                </div>
+                                                ${day.prob > 20 ? `<small class="text-primary fw-bold" style="font-size: 0.7rem;"><i class="bi bi-umbrella me-1"></i>${day.prob}%</small>` : '<div style="height: 17px;"></div>'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                forecastContainer.innerHTML += card;
+                            });
+                        }
+                    })
+                    .catch(err => console.log('Sem dados climáticos ou erro:', err));
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                initMap();
+
+                // Só carrega clima se tiver coords
+                if (coordenadas && coordenadas.length > 0) {
+                    loadWeather();
+                }
+            });
+        </script>
+        {% endblock %}

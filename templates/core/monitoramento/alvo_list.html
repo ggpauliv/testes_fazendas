@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Catálogo de Alvos - AgroTalhoes{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="bi bi-bug text-primary me-2"></i>Catálogo de Alvos</h1>
+        <a href="{% url 'alvo_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Novo Alvo
+        </a>
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for alvo in alvos %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0">
+                {% if alvo.imagem %}
+                <img src="{{ alvo.imagem.url }}" class="card-img-top" alt="{{ alvo.nome }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="bi bi-image text-muted fs-1"></i>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0 text-dark">{{ alvo.nome }}</h5>
+                        <span class="badge {% if alvo.tipo == 'PRAGA' %}bg-danger{% elif alvo.tipo == 'DOENCA' %}bg-warning{% else %}bg-success{% endif %}">
+                            {{ alvo.get_tipo_display }}
+                        </span>
+                    </div>
+                    <p class="card-text text-muted small mb-3">
+                        {{ alvo.descricao|default:"Sem descrição adicional."|truncatechars:100 }}
+                    </p>
+                    <div class="d-flex align-items-center text-secondary small">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                        Nível de Alerta: <strong>{{ alvo.nivel_alerta }}%</strong>
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-0 pb-3 d-flex gap-2">
+                    <a href="{% url 'alvo_edit' alvo.pk %}" class="btn btn-sm btn-outline-warning flex-grow-1">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-alvo" data-nome="{{ alvo.nome|escapejs }}" data-url="{% url 'alvo_delete' alvo.pk %}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="text-muted">
+                <i class="bi bi-bug-fill fs-1 d-block mb-3"></i>
+                <p>Nenhum alvo cadastrado ainda.</p>
+                <a href="{% url 'alvo_create' %}" class="btn btn-primary">Cadastrar Primeiro Alvo</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal confirm delete -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja remover o alvo <strong id="deleteTargetName"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmDelete(nome, url) {
+        document.getElementById('deleteTargetName').textContent = nome;
+        document.getElementById('deleteForm').action = url;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-delete-alvo').forEach(btn => {
+            btn.addEventListener('click', function() {
+                confirmDelete(this.dataset.nome, this.dataset.url);
+            });
+        });
+    });
+</script>
+{% endblock %}

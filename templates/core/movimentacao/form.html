@@ -1,0 +1,446 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Nova Movimentação{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'movimentacao_list' %}">Movimentações</a></li>
+                    <li class="breadcrumb-item active">{{ titulo }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold">
+                {% if is_edit %}
+                <i class="bi bi-pencil-square text-primary me-2"></i>
+                {% elif tipo == 'ENTRADA' %}
+                <i class="bi bi-box-arrow-in-right text-primary me-2"></i>
+                {% elif tipo == 'SAIDA' %}
+                <i class="bi bi-box-arrow-right text-success me-2"></i>
+                {% else %}
+                <i class="bi bi-arrow-left-right text-info me-2"></i>
+                {% endif %}
+                {{ titulo }}
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área de Itens em Lote -->
+    <div class="row mt-4" id="batch-area" style="display: none;">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-primary">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-primary fw-bold"><i class="bi bi-list-check me-2"></i>Itens da Importação</h6>
+                    <span class="badge bg-primary" id="batch-count">0 itens</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Qtd</th>
+                                    <th>Valor Un.</th>
+                                    <th>Total</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batch-table-body">
+                            </tbody>
+                            <tfoot class="table-light fw-bold">
+                                <tr>
+                                    <td colspan="3" class="text-end">Total Geral:</td>
+                                    <td id="batch-total">R$ 0,00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" name="batch_data" id="id_batch_data">
+
+</div>
+
+<!-- Modal de Seleção de Item da NFe -->
+<div class="modal fade" id="xmlItemsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Itens Encontrados na NFe</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="alert alert-info m-3 mb-0">
+                    <i class="bi bi-info-circle me-1"></i> Selecione os itens que deseja importar. Novos produtos serão
+                    cadastrados automaticamente.
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-fit mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40px;" class="ps-3">
+                                    <input type="checkbox" class="form-check-input" id="checkModalAll" checked>
+                                </th>
+                                <th>Produto (XML)</th>
+                                <th>Correspondência</th>
+                                <th>Qtd</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="xmlItemsTableBody">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="salvarItensSelecionados()">
+                    <i class="bi bi-plus-circle me-1"></i> Adicionar à Lista
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function carregarItensPedido() {
+        const pedidoId = document.getElementById('id_pedido_compra').value;
+        if (!pedidoId) {
+            alert('Por favor, selecione um Pedido de Compra primeiro.');
+            return;
+        }
+
+        fetch(`/api/pedido/${pedidoId}/itens/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    if (data.fornecedor) {
+                        const fornecedorField = document.getElementById('id_fornecedor');
+                        if (fornecedorField) fornecedorField.value = data.fornecedor;
+                    }
+                    if (data.itens.length > 0) {
+                        // Auto-fill Fazenda if the first item has it
+                        if (data.itens[0].fazenda_id) {
+                            const fazendaSelect = document.getElementById('id_fazenda');
+                            if (fazendaSelect && !fazendaSelect.value) {
+                                fazendaSelect.value = data.itens[0].fazenda_id;
+                            }
+                        }
+                        mostrarModalSelecao(data.itens);
+                    } else {
+                        alert('Nenhum item pendente encontrado neste pedido.');
+                    }
+                } else {
+                    alert('Erro ao carregar itens: ' + data.erro);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao processar requisição.');
+            });
+    }
+
+    function carregarItensContrato() {
+        const contratoId = document.getElementById('id_contrato_venda').value;
+        if (!contratoId) {
+            alert('Por favor, selecione um Contrato de Venda primeiro.');
+            return;
+        }
+
+        fetch(`/api/contrato/${contratoId}/itens/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    if (data.cliente_id) {
+                        const clienteSelect = document.getElementById('id_cliente');
+                        if (clienteSelect) {
+                            clienteSelect.value = data.cliente_id;
+                        }
+                    }
+                    if (data.itens.length > 0) {
+                        // Auto-fill Fazenda if the first item has it
+                        if (data.itens[0].fazenda_id) {
+                            const fazendaSelect = document.getElementById('id_fazenda');
+                            if (fazendaSelect && !fazendaSelect.value) {
+                                fazendaSelect.value = data.itens[0].fazenda_id;
+                            }
+                        }
+                        mostrarModalSelecao(data.itens);
+                    } else {
+                        alert('Nenhum item encontrado neste contrato.');
+                    }
+                } else {
+                    alert('Erro ao carregar itens: ' + data.erro);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao processar requisição.');
+            });
+    }
+
+    function carregarDadosXml() {
+        const fileInput = document.getElementById('id_arquivo_nfe');
+        if (!fileInput.files.length) {
+            alert('Por favor, selecione um arquivo NFe/XML primeiro.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('arquivo_xml', fileInput.files[0]);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        const btn = document.getElementById('btn-carregar-xml');
+        let originalText = 'Carregar XML';
+        if (btn) {
+            originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Carregando...';
+        }
+
+        fetch('{% url "api_ler_dados_nfe" %}', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.sucesso) {
+                    const fornecedorField = document.getElementById('id_fornecedor');
+                    if (fornecedorField) fornecedorField.value = data.emitente.nome || '';
+                    
+                    const numeroNfeField = document.getElementById('id_numero_nfe');
+                    if (numeroNfeField) numeroNfeField.value = data.nfe.numero || '';
+
+                    if (data.itens.length > 0) {
+                        mostrarModalSelecao(data.itens);
+                    } else {
+                        alert('Nenhum item encontrado no XML.');
+                    }
+                } else {
+                    alert('Erro ao ler XML: ' + data.erro);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao processar arquivo.');
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            });
+    }
+
+    let currentXmlItems = [];
+    let batchItems = [];
+
+    function mostrarModalSelecao(itens) {
+        currentXmlItems = itens;
+        const tbody = document.getElementById('xmlItemsTableBody');
+        tbody.innerHTML = '';
+
+        itens.forEach((item, index) => {
+            const matchInfo = item.produto_nome_match
+                ? `<span class="badge bg-success" title="Produto encontrado no sistema">${item.produto_nome_match}</span>`
+                : '<span class="badge bg-secondary">Sem correspondência (Novo)</span>';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="ps-3">
+                    <input type="checkbox" class="form-check-input item-check" value="${index}" checked>
+                </td>
+                <td>
+                    <div class="fw-bold">${item.nome}</div>
+                    <small class="text-muted">Cód: ${item.codigo}</small>
+                </td>
+                <td>${matchInfo}</td>
+                <td>${item.quantidade} ${item.unidade}</td>
+                <td>R$ ${item.valor_total.toFixed(2)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const checkAll = document.getElementById('checkModalAll');
+        if (checkAll) {
+            checkAll.checked = true;
+            checkAll.onclick = function () {
+                document.querySelectorAll('.item-check').forEach(cb => cb.checked = this.checked);
+            }
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('xmlItemsModal'));
+        modal.show();
+    }
+
+    function salvarItensSelecionados() {
+        const checkboxes = document.querySelectorAll('.item-check:checked');
+        if (checkboxes.length === 0) {
+            alert('Selecione pelo menos um item.');
+            return;
+        }
+
+        const selectedItems = Array.from(checkboxes).map(cb => currentXmlItems[cb.value]);
+
+        selectedItems.forEach(item => {
+            batchItems.push({
+                id: item.id,
+                nome: item.nome,
+                codigo: item.codigo,
+                unidade: item.unidade,
+                quantidade: parseFloat(item.quantidade),
+                valor_unitario: parseFloat(item.valor_unitario),
+                valor_total: parseFloat(item.valor_total),
+                produto_id: item.produto_id,
+                produto_nome_match: item.produto_nome_match
+            });
+        });
+
+        renderizarTabelaLote();
+
+        const modalEl = document.getElementById('xmlItemsModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+    }
+
+    function renderizarTabelaLote() {
+        const area = document.getElementById('batch-area');
+        const tbody = document.getElementById('batch-table-body');
+        const countSpan = document.getElementById('batch-count');
+        const totalSpan = document.getElementById('batch-total');
+        const inputData = document.getElementById('id_batch_data');
+
+        if (batchItems.length > 0) {
+            if (area) area.style.display = 'block';
+            tbody.innerHTML = '';
+
+            let totalGeral = 0;
+
+            batchItems.forEach((item, index) => {
+                totalGeral += item.valor_total;
+
+                const statusProd = item.produto_id
+                    ? '<span class="badge bg-success">Existente</span>'
+                    : '<span class="badge bg-warning text-dark">Novo</span>';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <div class="fw-bold">${item.nome}</div>
+                        <small class="text-muted">${item.produto_nome_match || item.codigo || 'Sem código'}</small>
+                        ${statusProd}
+                    </td>
+                    <td>${item.quantidade} ${item.unidade}</td>
+                    <td>R$ ${item.valor_unitario.toFixed(2)}</td>
+                    <td>R$ ${item.valor_total.toFixed(2)}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerItemLote(${index})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (countSpan) countSpan.textContent = `${batchItems.length} itens`;
+            if (totalSpan) totalSpan.textContent = `R$ ${totalGeral.toFixed(2)}`;
+
+            if (inputData) inputData.value = JSON.stringify(batchItems);
+
+            if (document.getElementById('id_quantidade')) document.getElementById('id_quantidade').required = false;
+            if (document.getElementById('id_valor_unitario')) document.getElementById('id_valor_unitario').required = false;
+            if (document.getElementById('id_produto')) document.getElementById('id_produto').required = false;
+
+        } else {
+            if (area) area.style.display = 'none';
+            if (inputData) inputData.value = '';
+        }
+    }
+
+    function adicionarItemManual() {
+        // Obter valores dos campos
+        const produtoSelect = document.getElementById('id_produto');
+        const qtdInput = document.getElementById('id_quantidade');
+        const valorInput = document.getElementById('id_valor_unitario');
+
+        const produtoId = produtoSelect.value;
+        const produtoNome = produtoSelect.options[produtoSelect.selectedIndex].text;
+        const qtd = parseFloat(qtdInput.value);
+        const valor = parseFloat(valorInput.value);
+
+        if (!produtoId || isNaN(qtd) || isNaN(valor)) {
+            alert('Por favor, preencha Produto, Quantidade e Valor Unitário.');
+            return;
+        }
+
+        // Adicionar ao lote
+        batchItems.push({
+            nome: produtoNome,
+            codigo: '', // Não temos o código aqui fácil, tudo bem
+            unidade: 'UN', // Assumindo (teria que pegar do cadastro via fetch ou data-attr)
+            quantidade: qtd,
+            valor_unitario: valor,
+            valor_total: qtd * valor,
+            produto_id: produtoId,
+            produto_nome_match: produtoNome
+        });
+
+        renderizarTabelaLote();
+
+        // Limpar campos
+        qtdInput.value = '';
+        valorInput.value = '';
+        produtoSelect.value = '';
+        produtoSelect.focus();
+    }
+
+    function removerItemLote(index) {
+        batchItems.splice(index, 1);
+        renderizarTabelaLote();
+    }
+
+    // Validação no Envio
+    document.addEventListener('DOMContentLoaded', function () {
+        // Encontrar o formulário (assumindo que é o primeiro/único)
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                // Verificar se há itens no lote
+                if (batchItems.length === 0) {
+                    // Se não tiver itens na lista, verificar se o usuário preencheu os campos manuais
+                    // Caso contrário, impedir envio e alertar
+                    const prod = document.getElementById('id_produto').value;
+                    const qtd = document.getElementById('id_quantidade').value;
+
+                    if (!prod || !qtd) {
+                        const isBatch = batchItems.length > 0;
+                        if (!isBatch) {
+                            e.preventDefault();
+                            alert('Por favor, adicione pelo menos um item à lista de movimentação (Use o botão "Adicionar Item" ou carregue um XML/Pedido).');
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %} 
+{% load crispy_forms_tags %} 
+
+{% block title %}{{ titulo }} | Gestor Talhão{% endblock %} 
+
+{% block content %} 
+<div class="container-fluid py-4"> 
+    <div class="row justify-content-center"> 
+        <div class="col-md-10"> 
+            <div class="card shadow"> 
+                <div class="card-header py-3"> 
+                    <h6 class="m-0 font-weight-bold text-primary">{{ titulo }}</h6> 
+                </div> 
+                <div class="card-body"> 
+                    <div class="alert alert-info border-start border-info border-4"> 
+                        <i class="bi bi-info-circle me-2"></i> 
+                        <strong>Como funciona a Fixação:</strong> 
+                        <ul class="mb-0 mt-1"> 
+                            <li>Selecione o <strong>Romaneio</strong> (Entrada Física) que você deseja liquidar.</li> 
+                            <li>Vincule ao <strong>Contrato de Venda</strong> (Acordo Comercial) correspondente.</li> 
+                            <li>Informe a quantidade de sacas a fixar e o preço acordado.</li> 
+                            <li>Isso gerará o valor a receber e baixará o saldo "A Fixar".</li> 
+                        </ul> 
+                    </div> 
+
+                    {% crispy form %} 
+                </div> 
+            </div> 
+        </div> 
+    </div> 
+</div> 
+{% endblock %} 

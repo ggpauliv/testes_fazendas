@@ -1,0 +1,51 @@
+# ============================================
+# AgroTalhões - Arquivo de exemplo de NFe
+# ============================================
+# Este é um exemplo simplificado de XML de NFe
+# para testes de importação.
+
+# Estrutura típica do XML de NFe:
+# 
+# <?xml version="1.0" encoding="UTF-8"?>
+# <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe">
+#   <NFe>
+#     <infNFe>
+#       <ide>
+#         <nNF>12345</nNF>
+#         <serie>1</serie>
+#         <dhEmi>2024-01-15T10:30:00-03:00</dhEmi>
+#       </ide>
+#       <emit>
+#         <xNome>Fornecedor de Insumos Agrícolas LTDA</xNome>
+#         <CNPJ>12345678000190</CNPJ>
+#       </emit>
+#       <det nItem="1">
+#         <prod>
+#           <cProd>001</cProd>
+#           <xProd>SEMENTE DE SOJA - VARIEDADE X</xProd>
+#           <NCM>12010010</NCM>
+#           <uCom>SC</uCom>
+#           <qCom>100.000</qCom>
+#           <vUnCom>250.0000</vUnCom>
+#           <vProd>25000.00</vProd>
+#         </prod>
+#       </det>
+#       <det nItem="2">
+#         <prod>
+#           <cProd>002</cProd>
+#           <xProd>FERTILIZANTE NPK 20-10-20</xProd>
+#           <NCM>31052000</NCM>
+#           <uCom>KG</uCom>
+#           <qCom>5000.000</qCom>
+#           <vUnCom>3.5000</vUnCom>
+#           <vProd>17500.00</vProd>
+#         </prod>
+#       </det>
+#     </infNFe>
+#   </NFe>
+#   <protNFe>
+#     <infProt>
+#       <chNFe>35240112345678000190550010000123451234567890</chNFe>
+#     </infProt>
+#   </protNFe>
+# </nfeProc>

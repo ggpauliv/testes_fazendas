@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Registrar Baixa{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header {% if tipo == 'PAGAR' %}bg-danger{% else %}bg-success{% endif %} text-white py-3">
+                    <h5 class="card-title mb-0 fw-bold">
+                        <i class="bi bi-cash-stack me-2"></i>
+                        {% if tipo == 'PAGAR' %}Registrar Pagamento{% else %}Registrar Recebimento{% endif %}
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert {% if tipo == 'PAGAR' %}alert-light border-danger{% else %}alert-light border-success{% endif %} mb-4">
+                        <div class="row">
+                            <div class="col-12">
+                                <label class="small text-muted mb-0">Conta:</label>
+                                <div class="fw-bold">{{ conta.descricao }}</div>
+                            </div>
+                            <div class="col-6 mt-2">
+                                <label class="small text-muted mb-0">Valor Total:</label>
+                                <div class="fw-bold">R$ {{ conta.valor_total|floatformat:2 }}</div>
+                            </div>
+                            <div class="col-6 mt-2">
+                                <label class="small text-muted mb-0">Saldo em Aberto:</label>
+                                <div class="fw-bold text-danger">R$ {{ conta.saldo_devedor|default:conta.saldo_restante|floatformat:2 }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% crispy form %}
+                        
+                        <div class="mt-4 text-center">
+                            <a href="{% if tipo == 'PAGAR' %}{% url 'conta_pagar_list' %}{% else %}{% url 'conta_receber_list' %}{% endif %}" class="btn btn-secondary w-100 mt-2">
+                                Cancelar e Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

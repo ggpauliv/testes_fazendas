@@ -1,0 +1,324 @@
+/* Minimalist Clean Design variables */
+:root {
+    --bs-font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --bs-body-bg: #f8f9fa;
+    --primary-color: #3b7ddd;
+    /* Uma cor azul sóbria, ou #14532d para verde */
+    --sidebar-bg: #222e3c;
+    --sidebar-color: #e9ecef;
+    --card-border-radius: 0.75rem;
+    --card-shadow: 0 0 .875rem 0 rgba(33, 40, 50, .05);
+}
+
+body {
+    font-family: var(--bs-font-sans-serif);
+    background-color: var(--bs-body-bg);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 700;
+    color: #333;
+    letter-spacing: -0.025em;
+}
+
+/* Base Utilities extracted from legacy */
+.text-main {
+    color: #1f2937;
+}
+
+.text-muted {
+    color: #6b7280 !important;
+}
+
+.bg-surface {
+    background-color: #ffffff;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .btn-group .btn {
+        width: auto;
+    }
+
+    .table-responsive {
+        border: 0;
+    }
+
+    /* Fix Card Headers on Mobile */
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.5rem;
+    }
+
+    .card-header .btn {
+        width: 100%;
+    }
+}
+
+/* Wrapper / Sidebar Layout */
+.wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+}
+
+#sidebar {
+    min-width: 260px;
+    max-width: 260px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-color);
+    transition: margin-left .35s ease-in-out, left .35s ease-in-out, margin-right .35s ease-in-out, right .35s ease-in-out;
+    direction: ltr;
+}
+
+#sidebar.collapsed {
+    margin-left: -260px;
+}
+
+.sidebar-content {
+    background: var(--sidebar-bg);
+    height: 100vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+}
+
+.sidebar-brand {
+    font-weight: 600;
+    font-size: 1.15rem;
+    padding: 1.15rem 1.5rem;
+    display: block;
+    color: #f8f9fa;
+    text-decoration: none;
+}
+
+.sidebar-nav {
+    padding-left: 0;
+    list-style: none;
+    margin-bottom: 0;
+}
+
+.sidebar-header {
+    background: transparent;
+    padding: 1.5rem 1.5rem .375rem;
+    font-size: .75rem;
+    color: #ced4da;
+    text-transform: uppercase;
+    cursor: pointer;
+    /* Clickable */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header:hover {
+    color: #fff;
+}
+
+.sidebar-header::after {
+    font-family: 'bootstrap-icons';
+    content: "\F282";
+    /* chevron-down */
+    transition: transform .2s ease;
+}
+
+.sidebar-header.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.sidebar-item.active .sidebar-link {
+    color: #e9ecef;
+    background: linear-gradient(90deg, rgba(59, 125, 221, .1) 0, rgba(59, 125, 221, .0875) 50%, transparent);
+    border-left-color: #3b7ddd;
+}
+
+.sidebar-link {
+    display: block;
+    padding: .625rem 1.625rem;
+    font-weight: 400;
+    transition: background .1s;
+    position: relative;
+    text-decoration: none;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    color: rgba(233, 236, 239, .5);
+}
+
+.sidebar-link:hover {
+    color: rgba(233, 236, 239, .75);
+    background: transparent;
+    border-left-color: transparent;
+}
+
+.sidebar-link i {
+    margin-right: .75rem;
+    color: rgba(233, 236, 239, .5);
+}
+
+/* Main Content & Containers */
+.main {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all .35s ease-in-out;
+    background-color: var(--bs-body-bg);
+}
+
+.navbar-bg {
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    padding: .875rem 1.5rem;
+    box-shadow: 0 0 2rem 0 rgba(33, 40, 50, .05);
+}
+
+.content {
+    flex: 1;
+    padding: 1.5rem;
+}
+
+/* Fix for double container-fluid padding */
+.content .container-fluid {
+    padding: 0;
+}
+
+/* ===================================================================
+   MODERN CARDS (Restored)
+   =================================================================== */
+.card {
+    box-shadow: var(--card-shadow);
+    margin-bottom: 24px;
+    border: none;
+    border-radius: var(--card-border-radius);
+    background-color: #fff;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Fix for header layout */
+}
+
+.card-title {
+    margin-bottom: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Statistic Cards */
+.card-stat {
+    border-top: 4px solid transparent;
+    /* Prepare for border-start/top replacement */
+}
+
+/* ===================================================================
+   BUTTONS & FORMS (Restored)
+   =================================================================== */
+.btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #2f64b1;
+    /* Darker shade of 3b7ddd */
+    border-color: #2f64b1;
+}
+
+.form-control,
+.form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+    padding: 0.6rem 2.5rem 0.6rem 0.85rem;
+    /* More right padding for chevron */
+    max-width: 100%;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Dynamic width class for selects that need to fit content */
+.form-select-dynamic {
+    width: auto;
+    min-width: 100px;
+    max-width: 100%;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(59, 125, 221, 0.25);
+}
+
+/* ===================================================================
+   TABLES (Restored)
+   =================================================================== */
+.table> :not(caption)>*>* {
+    padding: .75rem 1.25rem;
+    border-bottom-width: 1px;
+    vertical-align: middle;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    /* Header distinction */
+    border-bottom: 2px solid #e9ecef;
+}
+
+/* Badges */
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 600;
+    border-radius: 50rem;
+}
+
+/* Map Helper */
+#map,
+#map-dashboard {
+    border-radius: var(--card-border-radius);
+    overflow: hidden;
+    width: 100%;
+}
+
+@media (max-width: 991.98px) {
+    #sidebar {
+        margin-left: -260px;
+    }
+
+    #sidebar.collapsed {
+        margin-left: 0;
+    }
+}

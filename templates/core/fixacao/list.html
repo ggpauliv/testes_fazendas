@@ -1,0 +1,95 @@
+{% extends 'base.html' %} 
+
+{% block title %}Fixações de Preço | Gestor Talhão{% endblock %} 
+
+{% block content %} 
+<div class="container-fluid py-4"> 
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4"> 
+        <h1 class="h3 mb-0 text-gray-800">Fixações de Preço</h1> 
+        <a href="{% url 'fixacao_create' %}" class="btn btn-primary"> 
+            <i class="bi bi-plus-lg me-1"></i>Nova Fixação 
+        </a> 
+    </div> 
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-center">
+                <!-- Filtro Fazenda -->
+                <div class="col-auto" style="min-width: 200px;">
+                    <div class="input-group flex-nowrap">
+                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                        <select name="fazenda" class="form-select border-start-0 ps-0" onchange="this.form.submit()">
+                            <option value="">Todas as Fazendas</option>
+                            {% for f in fazendas %}
+                            <option value="{{ f.id }}" {% if fazenda_selecionada.id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                {% if fazenda_selecionada %}
+                <div class="col-auto">
+                    <a href="{% url 'fixacao_list' %}" class="btn btn-link text-muted btn-sm text-decoration-none">Limpar</a>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4"> 
+        <div class="card-body p-0"> 
+            <div class="table-responsive"> 
+                <table class="table table-hover align-middle mb-0"> 
+                    <thead class="bg-light"> 
+                        <tr> 
+                            <th>Data</th> 
+                            <th>Contrato</th>
+                            <th>Romaneio</th>
+                            <th>Qtd. Fixada (sc)</th>
+                            <th>Preço (R$/sc)</th>
+                            <th>Total (R$)</th>
+                            <th>Ações</th> 
+                        </tr> 
+                    </thead> 
+                    <tbody> 
+                        {% for fixacao in fixacoes %} 
+                        <tr> 
+                            <td>{{ fixacao.data_fixacao|date:"d/m/Y" }}</td> 
+                            <td>
+                                {{ fixacao.contrato.cliente }} <br>
+                                <small class="text-muted">Contrato #{{ fixacao.contrato.id }}</small>
+                            </td>
+                            <td>
+                                Ticket {{ fixacao.romaneio.numero_ticket }} <br>
+                                <small class="text-muted">{{ fixacao.romaneio.fazenda.nome }}</small>
+                            </td>
+                            <td class="fw-bold text-primary">{{ fixacao.quantidade_sacas|floatformat:2 }}</td> 
+                            <td>R$ {{ fixacao.valor_saca|floatformat:2 }}</td> 
+                            <td class="fw-bold text-success">R$ {{ fixacao.valor_total|floatformat:2 }}</td>
+                            <td> 
+                                <form action="{% url 'fixacao_delete' fixacao.pk %}" method="post" 
+                                      onsubmit="return confirm('Tem certeza que deseja excluir esta fixação?');" 
+                                      class="d-inline"> 
+                                    {% csrf_token %} 
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Excluir"> 
+                                        <i class="bi bi-trash"></i> 
+                                    </button> 
+                                </form> 
+                            </td> 
+                        </tr> 
+                        {% empty %} 
+                        <tr> 
+                            <td colspan="7" class="text-center py-4 text-muted"> 
+                                <i class="bi bi-cash-coin fs-1 d-block mb-2"></i> 
+                                Nenhuma fixação registrada
+                            </td> 
+                        </tr> 
+                        {% endfor %} 
+                    </tbody> 
+                </table> 
+            </div> 
+        </div> 
+    </div> 
+</div> 
+{% endblock %} 

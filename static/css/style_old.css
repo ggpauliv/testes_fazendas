@@ -1,0 +1,538 @@
+/*
+ * AgroTalhões - Layout Minimalista & Futurista
+ * Design System: "Horizon Eco"
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    /* Palette Core - Clean & Tech */
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Colors */
+    --bg-body: #f3f6f9;
+    --bg-surface: #ffffff;
+
+    /* Primary (Futuristic Blue/Indigo) */
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+
+    /* Accents */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #06b6d4;
+
+    /* Neutrals */
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --gradient-dark: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+
+    /* Effects */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-pill: 50px;
+
+    /* Soft premium shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    --shadow-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+
+    /* Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.82);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+    --glass-blur: blur(12px);
+}
+
+/* ===================================================================
+   RESET & BASE
+   =================================================================== */
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.6;
+    letter-spacing: -0.015em;
+    /* Modern tight modern spacing */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.main-content {
+    flex: 1;
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+}
+
+/* ===================================================================
+   GLASS NAVBAR
+   =================================================================== */
+.navbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    /* Safari */
+    border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: var(--shadow-sm);
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+    z-index: 1030;
+}
+
+/* Overriding Bootstrap Navbar Classes */
+.bg-gradient-primary {
+    /* Resetting the background so glass effect works, or keeping it dark if user prefers contrast. 
+       Let's create a Light Modern Navbar instead of the old dark green one. */
+    background: rgba(255, 255, 255, 0.85) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-dark .navbar-brand {
+    color: var(--primary);
+    /* Brand Color */
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.04em;
+}
+
+.navbar-dark .navbar-brand:hover {
+    color: var(--primary-hover);
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: var(--text-muted);
+    /* Dark text on light navbar */
+    font-weight: 500;
+    padding: 0.6rem 1rem !important;
+    border-radius: var(--radius-pill);
+    transition: all 0.25s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.08);
+    /* Light blue bg on hover */
+}
+
+.navbar-dark .navbar-nav .nav-link.active {
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.12);
+    font-weight: 600;
+}
+
+.navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(31, 41, 55, 0.75)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.navbar-dark .navbar-toggler {
+    border-color: transparent;
+}
+
+/* User Profile */
+.navbar .dropdown-menu {
+    border: none;
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    background: var(--bg-surface);
+    animation: slideDownFade 0.2s ease-out forwards;
+}
+
+.dropdown-item {
+    border-radius: var(--radius-sm);
+    padding: 0.6rem 1rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.dropdown-item:hover {
+    background-color: var(--bg-body);
+    color: var(--primary);
+}
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ===================================================================
+   MODERN CARDS
+   =================================================================== */
+.card {
+    background: var(--bg-surface);
+    border: none;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    /* Ensure rounded corners clip content */
+}
+
+/* Hover effect on interactive cards */
+.card.hover-lift:hover,
+.card-stat:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1.25rem 1.75rem;
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.75rem;
+}
+
+/* Statistic Cards */
+.card-stat {
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+}
+
+.icon-box-modern {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    transition: all 0.3s ease;
+}
+
+/* ===================================================================
+   BUTTONS & ACTIONS
+   =================================================================== */
+.btn {
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    padding: 0.6rem 1.25rem;
+    letter-spacing: 0.01em;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-outline-secondary {
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    background: transparent;
+    box-shadow: none;
+}
+
+.btn-outline-secondary:hover {
+    background: var(--bg-body);
+    color: var(--text-main);
+    border-color: #d1d5db;
+}
+
+/* Rounded Pills/Floating Actions */
+.btn-float {
+    border-radius: var(--radius-pill);
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+/* ===================================================================
+   FORMS
+   =================================================================== */
+.form-control,
+.form-select {
+    background-color: #fafbfc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+.form-control:focus,
+.form-select:focus {
+    background-color: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.form-label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #4b5563;
+}
+
+/* ===================================================================
+   TABLES & LISTS
+   =================================================================== */
+.table {
+    --bs-table-bg: transparent;
+}
+
+.table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.table td {
+    padding: 1rem 0.5rem;
+    vertical-align: middle;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 0.925rem;
+    color: var(--text-main);
+}
+
+.table-hover tbody tr:hover {
+    background-color: #f9fafb !important;
+}
+
+/* Badge Updates - Pill & Soft */
+.badge {
+    padding: 0.5em 0.9em;
+    font-weight: 600;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.025em;
+}
+
+/* ===================================================================
+   UTILITIES & EXTRAS
+   =================================================================== */
+.ls-1 {
+    letter-spacing: 0.025em;
+}
+
+.bg-gradient-header {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#market-ticker {
+    background: #0f172a !important;
+    /* Keep it dark for high contrast */
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    /* Tech feel */
+    font-size: 0.8rem !important;
+    letter-spacing: -0.02em;
+}
+
+/* Footer modern */
+footer {
+    background: transparent !important;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-muted) !important;
+}
+
+/* Map Rounded */
+#map,
+#map-dashboard {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+/* ===================================================================
+   RESPONSIVE OVERRIDES
+   =================================================================== */
+
+/* Tablet/Laptop Intermediate Zone (Fix for crowded navbar) */
+@media (min-width: 992px) and (max-width: 1280px) {
+    .navbar-expand-lg .navbar-nav .nav-link {
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        font-size: 0.85rem !important;
+    }
+
+    .navbar-brand {
+        font-size: 1.2rem !important;
+        margin-right: 0.5rem !important;
+    }
+
+    /* Adjust container padding to minimize whitespace */
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .main-content {
+        padding-top: 1rem;
+        padding-bottom: 2rem;
+    }
+
+    /* Standardize Buttons on Mobile */
+    .btn,
+    .btn-lg,
+    .btn-sm {
+        width: 100%;
+        /* Most action buttons should be full width on mobile */
+        margin-bottom: 0.5rem;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+        font-size: 1rem !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Exceptions: Small buttons in groups or tables */
+    .btn-group .btn,
+    .table td .btn,
+    .card-header .btn-sm,
+    .input-group .btn {
+        width: auto;
+        display: inline-flex;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.875rem !important;
+        margin-bottom: 0;
+    }
+
+    /* Fixed Button Groups in Tables */
+    .table td .btn-group {
+        display: flex;
+        width: 100%;
+    }
+
+    .table td .btn-group .btn {
+        flex: 1;
+    }
+
+    /* Card Headers */
+    .card-header {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .card-header .btn {
+        margin-top: 0.75rem;
+        width: 100%;
+    }
+
+    /* Form Layouts */
+    .row.g-3>[class*="col-"] {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Dashboard Specific */
+    .market-ticker-content {
+        gap: 0.5rem !important;
+    }
+
+    /* Market Ticker Mobile Optimization */
+    #market-ticker-content {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        white-space: nowrap;
+        justify-content: flex-start !important;
+        padding-bottom: 5px;
+        /* Scrollbar space */
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Hide scrollbar for cleaner look but keep functionality */
+    #market-ticker-content::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    #market-ticker-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+    /* Map Responsive Height */
+    #map,
+    #map-dashboard {
+        height: 60vh !important;
+        min-height: 400px;
+        /* Garantir altura mínima */
+    }
+
+    /* Form Actions - Stack buttons on mobile */
+    .form-actions-mobile {
+        flex-direction: column;
+        gap: 10px !important;
+    }
+
+    .form-actions-mobile .btn {
+        width: 100%;
+        margin: 0 !important;
+    }
+
+    /* Prevent Select Overflow */
+    select,
+    .form-select {
+        max-width: 100%;
+        text-overflow: ellipsis;
+    }
+}

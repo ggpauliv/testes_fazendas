@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Importar NFe{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'movimentacao_list' %}">Movimentações</a></li>
+                    <li class="breadcrumb-item active">Importar NFe</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold"><i class="bi bi-file-earmark-code text-success me-2"></i>Importar NFe</h1>
+            <p class="text-muted">Importe o XML da Nota Fiscal Eletrônica para dar entrada automática no estoque</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% crispy form %}
+                </div>
+            </div>
+
+            {% if preview_data %}
+            <form method="post" action="{% url 'importar_nfe' %}">
+                {% csrf_token %}
+                <input type="hidden" name="confirmar_importacao" value="1">
+                <input type="hidden" name="nfe_numero" value="{{ preview_data.nfe.numero }}">
+                <input type="hidden" name="nfe_chave" value="{{ preview_data.nfe.chave }}">
+                <input type="hidden" name="fornecedor_nome" value="{{ preview_data.emitente.nome }}">
+
+                <div class="card shadow-sm mt-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-list-check me-2"></i>Itens da NFe {{ preview_data.nfe.numero }}
+                            </h5>
+                            <span>{{ preview_data.emitente.nome }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0 align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3"><input type="checkbox" class="form-check-input" id="checkAll"
+                                                checked></th>
+                                        <th>Produto (XML)</th>
+                                        <th>Qtd / Un</th>
+                                        <th>Valor Un.</th>
+                                        <th style="width: 35%;">Vincular Produto Sistema</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for index, item in zipped_items %}
+                                    <tr>
+                                        <td class="ps-3">
+                                            <input type="checkbox" class="form-check-input item-check"
+                                                name="items_selecionados" value="{{ index }}" checked>
+
+                                            <!-- Campos Ocultos para envio -->
+                                            <input type="hidden" name="nome_xml_{{ index }}" value="{{ item.nome }}">
+                                            <input type="hidden" name="codigo_xml_{{ index }}"
+                                                value="{{ item.codigo }}">
+                                            <input type="hidden" name="unidade_xml_{{ index }}"
+                                                value="{{ item.unidade }}">
+                                            <input type="hidden" name="quantidade_{{ index }}"
+                                                value="{{ item.quantidade }}">
+                                            <input type="hidden" name="valor_{{ index }}"
+                                                value="{{ item.valor_unitario }}">
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold">{{ item.nome }}</div>
+                                            <small class="text-muted">Cód: {{ item.codigo }}</small>
+                                        </td>
+                                        <td>{{ item.quantidade }} {{ item.unidade }}</td>
+                                        <td>R$ {{ item.valor_unitario }}</td>
+                                        <td>
+                                            <select name="produto_sistema_{{ index }}"
+                                                class="form-select form-select-sm">
+                                                <option value="">-- Criar Novo Produto --</option>
+                                                {% for prod in produtos_sistema %}
+                                                <option value="{{ prod.id }}" {% if item.produto_id==prod.id
+                                                    %}selected{% endif %}>
+                                                    {{ prod.nome }} ({{ prod.unidade }})
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-end">
+                        <a href="{% url 'importar_nfe' %}" class="btn btn-secondary me-2">Cancelar</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg me-1"></i>Confirmar Importação Selecionada
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <script>
+                document.getElementById('checkAll').addEventListener('change', function () {
+                    const checkboxes = document.querySelectorAll('.item-check');
+                    checkboxes.forEach(cb => cb.checked = this.checked);
+                });
+            </script>
+            {% endif %}
+
+            {% if resultado %}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        {% if resultado.sucesso %}
+                        <i class="bi bi-check-circle text-success me-2"></i>Resultado da Importação
+                        {% else %}
+                        <i class="bi bi-x-circle text-danger me-2"></i>Erro na Importação
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if resultado.sucesso %}
+                    <div class="alert alert-success">
+                        <strong>{{ resultado.mensagem }}</strong>
+                    </div>
+
+                    {% if resultado.produtos %}
+                    <h6 class="mt-4">Produtos Importados:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produto</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Valor Unit.</th>
+                                    <th class="text-end">Valor Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in resultado.produtos %}
+                                <tr>
+                                    <td>{{ prod.nome }}</td>
+                                    <td class="text-end">{{ prod.quantidade }}</td>
+                                    <td class="text-end">R$ {{ prod.valor_unitario|floatformat:4 }}</td>
+                                    <td class="text-end">R$ {{ prod.valor_total|floatformat:2 }}</td>
+                                    <td>
+                                        {% if prod.produto_criado %}
+                                        <span class="badge bg-info">Novo produto criado</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Produto existente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    {% if resultado.fornecedor %}
+                    <p class="mt-3 text-muted">
+                        <strong>Fornecedor:</strong> {{ resultado.fornecedor.nome }}<br>
+                        <strong>CNPJ:</strong> {{ resultado.fornecedor.cnpj }}
+                    </p>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <strong>{{ resultado.mensagem }}</strong>
+                    </div>
+
+                    {% if resultado.erros %}
+                    <h6>Erros encontrados:</h6>
+                    <ul class="text-danger">
+                        {% for erro in resultado.erros %}
+                        <li>{{ erro }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm bg-light">
+                <div class="card-body">
+                    <h6><i class="bi bi-question-circle me-2"></i>Como funciona?</h6>
+                    <ol class="small text-muted">
+                        <li class="mb-2">Selecione o arquivo <strong>.xml</strong> da NFe</li>
+                        <li class="mb-2">O sistema irá extrair automaticamente os produtos</li>
+                        <li class="mb-2">Será criada uma entrada no estoque para cada item</li>
+                        <li>Produtos novos serão cadastrados automaticamente</li>
+                    </ol>
+                    <hr>
+                    <p class="small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        A importação verifica se a NFe já foi importada pela chave de acesso, evitando duplicidades.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

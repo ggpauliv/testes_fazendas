@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }} - AgroTalhoes{% endblock %}
+
+{% block content %}
+<style>
+    #btn-add-talhao {
+        height: 38px;
+    }
+</style>
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'monitoramento_list' %}">Monitoramentos</a></li>
+            <li class="breadcrumb-item active">{{ title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-xl-10">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                    <h1 class="h4 mb-0 text-gray-800"><i class="bi bi-search text-success me-2"></i>{{ title }}</h1>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" id="scouting-form" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">1. Dados da Inspeção</h5>
+                            {% crispy form %}
+                        </div>
+
+                        <!-- SEÇÃO DE TALHÕES (NOVA) -->
+                        <div class="mb-5">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">2. Talhões Monitorados</h5>
+                            <div class="row g-3 align-items-end mb-3">
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold">Selecione o Talhão</label>
+                                    <select id="id_talhao_selector" class="form-select">
+                                        <option value="">Selecione a Fazenda primeiro</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" id="btn-add-talhao" class="btn btn-primary w-100">
+                                        <i class="bi bi-plus-lg me-1"></i>Adicionar Talhão
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle" id="table-talhoes-selecionados">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Fazenda</th>
+                                            <th>Talhão</th>
+                                            <th class="text-end">Área (ha)</th>
+                                            <th class="text-center">Remover</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Preenchido via JS -->
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="2">Total Área Monitorada</td>
+                                            <td class="text-end"><span id="display-area-total">0.00</span> ha</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">3. Insetos, Doenças e Plantas Daninhas Encontradas</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle" id="items-table">
+                                    <thead class="table-light text-center small uppercase">
+                                        <tr>
+                                            <th style="width: 35%;">Alvo</th>
+                                            <th style="width: 15%;">Incidência (%)</th>
+                                            <th style="width: 15%;">Severidade (1-5)</th>
+                                            <th style="width: 25%;">Contagem/Obs</th>
+                                            <th style="width: 10%;">Ação</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{ formset.management_form }}
+                                        {% for item_form in formset %}
+                                        <tr class="item-row">
+                                            {% for hidden in item_form.hidden_fields %}
+                                                {{ hidden }}
+                                            {% endfor %}
+                                            <td>{{ item_form.alvo }}</td>
+                                            <td>{{ item_form.incidencia }}</td>
+                                            <td>{{ item_form.severidade }}</td>
+                                            <td>{{ item_form.contagem }}</td>
+                                            <td class="text-center">
+                                                {% if item_form.instance.pk %}
+                                                    <div class="form-check d-inline-block">
+                                                        {{ item_form.DELETE }}
+                                                        <label class="form-check-label text-danger" for="{{ item_form.DELETE.id_for_label }}"><i class="bi bi-trash"></i></label>
+                                                    </div>
+                                                {% else %}
+                                                    <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn"><i class="bi bi-trash"></i></button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" id="add-item-btn" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-plus-lg me-1"></i>Adicionar Detalhe
+                            </button>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-success btn-lg">Finalizar e Salvar Monitoramento</button>
+                            <a href="{% url 'monitoramento_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template for new row (Items) -->
+<script type="text/template" id="row-template">
+    <tr class="item-row">
+        <td>{{ formset.empty_form.alvo }}</td>
+        <td>{{ formset.empty_form.incidencia }}</td>
+        <td>{{ formset.empty_form.severidade }}</td>
+        <td>{{ formset.empty_form.contagem }}</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-outline-danger btn-sm remove-row-btn"><i class="bi bi-trash"></i></button>
+        </td>
+    </tr>
+</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // =========================================================================
+        // 1. LÓGICA DE ITENS (LISTA DINÂMICA)
+        // =========================================================================
+        const addItemBtn = document.getElementById('add-item-btn');
+        const itemsTable = document.getElementById('items-table').getElementsByTagName('tbody')[0];
+        const totalForms = document.getElementById('id_itens-TOTAL_FORMS');
+        const rowTemplate = document.getElementById('row-template').innerHTML;
+
+        addItemBtn.addEventListener('click', function() {
+            const formIdx = parseInt(totalForms.value);
+            const newRow = rowTemplate.replace(/__prefix__/g, formIdx);
+            itemsTable.insertAdjacentHTML('beforeend', newRow);
+            totalForms.value = formIdx + 1;
+        });
+
+        itemsTable.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-row-btn')) {
+                const row = e.target.closest('.item-row');
+                row.remove();
+            }
+        });
+
+        // =========================================================================
+        // 2. LÓGICA DE TALHÕES (DINÂMICO/AJAX)
+        // =========================================================================
+        let talhoesData = [];
+        try { talhoesData = JSON.parse('{{ talhoes_json|safe }}'); } catch (e) {}
+
+        let ciclosData = [];
+        try { ciclosData = JSON.parse('{{ ciclos_json|safe }}'); } catch (e) {}
+
+        const safraSelector = document.getElementById('id_safra');
+        const cicloSelector = document.getElementById('id_ciclo');
+        const fazendaSelector = document.getElementById('id_fazenda_selector');
+        const talhaoSelector = document.getElementById('id_talhao_selector');
+        const btnAddTalhao = document.getElementById('btn-add-talhao');
+        const tableBodyTalhoes = document.querySelector('#table-talhoes-selecionados tbody');
+        const hiddenSelectTalhoes = document.getElementById('id_talhoes');
+        const displayAreaTotal = document.getElementById('display-area-total');
+
+        const talhoesMap = {};
+        talhoesData.forEach(t => { talhoesMap[t.id] = t; });
+
+        function getSelectedTalhoesIds() {
+            return Array.from(hiddenSelectTalhoes.options)
+                .filter(opt => opt.selected)
+                .map(opt => parseInt(opt.value));
+        }
+
+        function refreshTalhaoOptions() {
+            if (!fazendaSelector || !talhaoSelector) return;
+            const fazendaId = fazendaSelector.value;
+            talhaoSelector.innerHTML = '<option value="">Selecione o Talhão</option>';
+            
+            if (!fazendaId) {
+                talhaoSelector.innerHTML = '<option value="">Selecione a Fazenda primeiro</option>';
+                return;
+            }
+
+            const filtrados = talhoesData.filter(t => t.fazenda_id == fazendaId);
+            const selectedIds = getSelectedTalhoesIds();
+
+            const disponiveis = filtrados.filter(t => !selectedIds.includes(t.id));
+
+            if (disponiveis.length > 0) {
+                disponiveis.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.nome;
+                    talhaoSelector.appendChild(option);
+                });
+            } else {
+                 const option = document.createElement('option');
+                 option.textContent = "Nenhum disponível";
+                 talhaoSelector.appendChild(option);
+            }
+        }
+
+        if (fazendaSelector) fazendaSelector.addEventListener('change', refreshTalhaoOptions);
+
+        function adicionarTalhao(id, skipUpdate = false) {
+            const talhaoId = parseInt(id);
+            if (getSelectedTalhoesIds().includes(talhaoId)) return;
+
+            const talhao = talhoesMap[talhaoId];
+            if (!talhao) return;
+
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', talhao.id);
+            row.innerHTML = `
+                <td>${talhao.fazenda__nome || '-'}</td>
+                <td>${talhao.nome}</td>
+                <td class="text-end">${parseFloat(talhao.area_hectares).toLocaleString('pt-BR')}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-talhao">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBodyTalhoes.appendChild(row);
+
+            let opt = Array.from(hiddenSelectTalhoes.options).find(o => o.value == talhaoId);
+            if (!opt) {
+                opt = new Option(talhao.nome, talhaoId, true, true);
+                hiddenSelectTalhoes.add(opt);
+            }
+            opt.selected = true;
+
+            row.querySelector('.btn-remove-talhao').addEventListener('click', function() {
+                row.remove();
+                if (opt) opt.selected = false;
+                updateTotals();
+                refreshTalhaoOptions();
+            });
+
+            if (!skipUpdate) {
+                updateTotals();
+                refreshTalhaoOptions();
+            }
+        }
+
+        if (btnAddTalhao) {
+            btnAddTalhao.addEventListener('click', function() {
+                const val = talhaoSelector.value;
+                if(val) adicionarTalhao(val);
+            });
+        }
+
+        function updateTotals() {
+            let totalArea = 0;
+            getSelectedTalhoesIds().forEach(id => {
+                const t = talhoesMap[id];
+                if (t) totalArea += parseFloat(t.area_hectares || 0);
+            });
+            if (displayAreaTotal) displayAreaTotal.textContent = totalArea.toFixed(2);
+        }
+
+        // JS SAFRA -> CICLO
+        const ciclosMap = {};
+        ciclosData.forEach(c => ciclosMap[c.id] = c);
+
+        function filterCiclosBySafra() {
+            if (!safraSelector || !cicloSelector) return;
+            const safraId = safraSelector.value;
+            const currentCicloId = cicloSelector.value;
+            
+            cicloSelector.innerHTML = '<option value="">Selecione o Ciclo (Opcional)</option>';
+            const filtered = ciclosData.filter(c => !safraId || c.safra_id == safraId);
+            
+            filtered.forEach(c => {
+                const opt = new Option(c.nome, c.id);
+                if (c.id == currentCicloId) opt.selected = true;
+                cicloSelector.add(opt);
+            });
+        }
+
+        if (safraSelector) {
+            safraSelector.addEventListener('change', filterCiclosBySafra);
+            filterCiclosBySafra();
+        }
+
+        if (cicloSelector) {
+            cicloSelector.addEventListener('change', function() {
+                const cicloId = this.value;
+                if (!cicloId) return;
+
+                const ciclo = ciclosMap[cicloId];
+                if (!ciclo) return;
+
+                if (ciclo.fazenda_id && fazendaSelector) fazendaSelector.value = ciclo.fazenda_id;
+
+                tableBodyTalhoes.innerHTML = '';
+                Array.from(hiddenSelectTalhoes.options).forEach(o => o.selected = false);
+                
+                if (ciclo.talhoes && ciclo.talhoes.length > 0) {
+                    ciclo.talhoes.forEach(tId => {
+                        adicionarTalhao(tId, true);
+                    });
+                }
+                updateTotals();
+                refreshTalhaoOptions();
+            });
+        }
+
+        // Init: Load Existing Selected Talhoes
+        Array.from(hiddenSelectTalhoes.options).forEach(opt => {
+            if (opt.selected) adicionarTalhao(opt.value, true);
+        });
+        updateTotals();
+        refreshTalhaoOptions();
+
+        // GEOLOCATION
+        if ("geolocation" in navigator && !document.getElementById('id_latitude').value) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.getElementById('id_latitude').value = position.coords.latitude.toFixed(6);
+                document.getElementById('id_longitude').value = position.coords.longitude.toFixed(6);
+            });
+        }
+    });
+</script>
+<style>
+    .form-control-sm, .form-select-sm { font-size: 0.8rem; }
+    #id_talhoes { display: none; }
+</style>
+{% endblock %}

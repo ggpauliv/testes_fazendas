@@ -1,0 +1,162 @@
+{% extends 'base.html' %} 
+{% load format_filters %}
+
+{% block title %}Relatório de Produção | Gestor Talhão{% endblock %} 
+
+{% block content %} 
+<div class="container-fluid py-4"> 
+    <div class="d-flex justify-content-between align-items-center mb-4"> 
+        <h1 class="h3 mb-0 text-gray-800">Relatório de Produtividade</h1> 
+        
+        <form class="d-flex align-items-center row g-2" method="get">
+            <!-- Filtro Fazenda -->
+            <div class="col-auto" style="min-width: 200px;">
+                <select name="fazenda" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas as Fazendas</option>
+                    {% for f in fazendas %}
+                    <option value="{{ f.id }}" {% if fazenda_selecionada.id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtro Safra -->
+            <div class="col-auto" style="min-width: 180px;">
+                <select name="safra" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas as Safras</option>
+                    {% for safra in safras %}
+                    <option value="{{ safra.id }}" {% if safra_selecionada.id == safra.id %}selected{% endif %}>
+                        {{ safra.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div> 
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Área Total (ha)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.area|formato_br }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-map fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Produção Real (sc)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.real|formato_br:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-box-seam fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Produtividade Média (sc/ha)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.produtividade_media|formato_br }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-speedometer2 fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Estimado vs Real</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.estimado|formato_br:0 }} sc (Est.)</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-graph-up-arrow fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Detalhada -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Detalhamento por Talhão/Plantio</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Safra</th>
+                            <th>Talhão</th>
+                            <th>Cultura</th>
+                            <th>Área (ha)</th>
+                            <th>Dt Plantio</th>
+                            <th>Estimativa (sc)</th>
+                            <th>Realizado (sc)</th>
+                            <th>Produtividade (sc/ha)</th>
+                            <th>Progresso</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dados %}
+                        <tr>
+                            <td>{{ item.plantio.safra.nome }}</td>
+                            <td>
+                                {% for t in item.plantio.talhoes.all %}
+                                    {{ t.nome }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    -
+                                {% endfor %}
+                            </td>
+                            <td>{{ item.plantio.cultura }}</td>
+                            <td>{{ item.area|formato_br }}</td>
+                            <td>{{ item.plantio.data_plantio|date:"d/m/Y" }}</td>
+                            <td>{{ item.estimado|formato_br:0 }}</td>
+                            <td class="fw-bold text-success">{{ item.real_sacas|formato_br:0 }}</td>
+                            <td class="fw-bold {% if item.produtividade > 60 %}text-success{% else %}text-warning{% endif %}">
+                                {{ item.produtividade|formato_br }}
+                            </td>
+                            <td style="width: 15%">
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if item.progresso >= 100 %}bg-success{% else %}bg-info{% endif %}" role="progressbar" style="width: {{ item.progresso|formato_br:0 }}%" aria-valuenow="{{ item.progresso|formato_br:0 }}" aria-valuemin="0" aria-valuemax="100">
+                                         {{ item.progresso|formato_br:0 }}%
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">Nenhum dado encontrado para os filtros selecionados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div> 
+{% endblock %} 

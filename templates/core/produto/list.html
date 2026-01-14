@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Produtos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 fw-bold"><i class="bi bi-box-seam text-primary me-2"></i>Produtos</h1>
+                <p class="text-muted mb-0">Controle de insumos e produtos agrícolas</p>
+            </div>
+            <a href="{% url 'produto_create' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle me-2"></i>Novo Produto
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-funnel me-2"></i>Filtros de Pesquisa</h6>
+        </div>
+        <div class="card-body py-3">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">Buscar</label>
+                    <input type="text" name="busca" class="form-control" placeholder="Nome ou Código"
+                        value="{{ busca|default:'' }}">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary me-1">
+                        <i class="bi bi-search me-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'produto_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            {% if produtos %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Produto</th>
+                            <th>Categoria</th>
+                            <th>Unidade</th>
+                            <th class="text-end">Estoque Atual</th>
+                            <th class="text-end">Estoque Mínimo</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">{{ produto.nome }}</div>
+                                {% if produto.codigo %}
+                                <small class="text-muted">Cód: {{ produto.codigo }}</small>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-secondary">{{ produto.get_categoria_display }}</span></td>
+                            <td>{{ produto.unidade }}</td>
+                            <td class="text-end {% if produto.estoque_baixo %}text-danger fw-bold{% endif %}">
+                                {{ produto.estoque_atual|floatformat:2 }}
+                                {% if produto.estoque_baixo %}
+                                <i class="bi bi-exclamation-triangle ms-1" title="Estoque baixo"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-end text-muted">{{ produto.estoque_minimo|floatformat:2 }}</td>
+                            <td>
+                                {% if produto.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'produto_edit' produto.pk %}" class="btn btn-outline-warning"
+                                        title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" title="Excluir"
+                                        onclick="confirmarExclusao('{{ produto.nome }}', '{% url 'produto_delete' produto.pk %}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if produtos.has_other_pages %}
+            <div class="card-footer bg-white">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if produtos.has_previous %}
+                        <li class="page-item"><a class="page-link"
+                                href="?page={{ produtos.previous_page_number }}&busca={{ busca|default:'' }}">Anterior</a>
+                        </li>
+                        {% endif %}
+                        {% for num in produtos.paginator.page_range %}
+                        <li class="page-item {% if produtos.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}&busca={{ busca|default:'' }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if produtos.has_next %}
+                        <li class="page-item"><a class="page-link"
+                                href="?page={{ produtos.next_page_number }}&busca={{ busca|default:'' }}">Próximo</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-box text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Nenhum produto cadastrado</h4>
+                <p class="text-muted">Adicione produtos para controlar o estoque.</p>
+                <a href="{% url 'produto_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Criar Primeiro Produto
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação -->
+<div class="modal fade" id="modalExclusao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o produto <strong id="nomeItem"></strong>?</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formExclusao" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmarExclusao(nome, url) {
+        document.getElementById('nomeItem').textContent = nome;
+        document.getElementById('formExclusao').action = url;
+        new bootstrap.Modal(document.getElementById('modalExclusao')).show();
+    }
+</script>
+{% endblock %}

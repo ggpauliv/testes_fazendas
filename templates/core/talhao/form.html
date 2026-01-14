@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags l10n %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- Leaflet Draw -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+<!-- Data Islands for safer JS handling -->
+{{ siblings_json|json_script:"siblings-data" }}
+{% if parent_coords_list %}
+    {{ parent_coords_list|json_script:"parent-coords-data" }}
+{% endif %}
+{% if fazenda_lat and fazenda_lon %}
+    <script id="fazenda-coords" type="application/json">{"lat": {{ fazenda_lat|unlocalize }}, "lon": {{ fazenda_lon|unlocalize }}}</script>
+{% endif %}
+
+<style>
+    /* Fix for Leaflet Draw icons z-index if needed */
+    .leaflet-draw-toolbar a {
+        background-color: #fff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'talhao_list' %}">Talhões</a></li>
+                    <li class="breadcrumb-item active">{{ titulo }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold"><i class="bi bi-map text-success me-2"></i>{{ titulo|default:"Talhão" }}</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" id="formTalhao">
+                        {% csrf_token %}
+
+                        {{ form.parent }}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_fazenda" class="form-label">Fazenda</label>
+                                {{ form.fazenda }}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_nome" class="form-label">Nome do Talhão *</label>
+                                <input type="text" name="nome" id="id_nome" class="form-control form-control-lg"
+                                    value="{{ form.nome.value|default:'' }}" required>
+                            </div>
+                        </div>
+
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Por favor, corrija os erros abaixo:
+                            {{ form.errors }}
+                        </div>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="id_area_hectares" class="form-label">Área (hectares)</label>
+                                <input type="number" name="area_hectares" id="id_area_hectares"
+                                    class="form-control form-control-lg" step="0.0001" min="0"
+                                    value="{{ form.area_hectares.value|default:0|stringformat:'.4f' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="id_cultura_atual" class="form-label">Cultura Atual</label>
+                                <input type="text" name="cultura_atual" id="id_cultura_atual"
+                                    class="form-control form-control-lg"
+                                    value="{{ form.cultura_atual.value|default:'' }}" placeholder="Ex: Soja, Milho">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label for="id_descricao" class="form-label">Descrição</label>
+                                <textarea name="descricao" id="id_descricao" rows="2"
+                                    class="form-control">{{ form.descricao.value|default:'' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="form-check">
+                                    {% if form.ativo.value or not talhao %}
+                                    <input type="checkbox" name="ativo" id="id_ativo" class="form-check-input" checked>
+                                    {% else %}
+                                    <input type="checkbox" name="ativo" id="id_ativo" class="form-check-input">
+                                    {% endif %}
+                                    <label for="id_ativo" class="form-check-label">Talhão Ativo</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="coordenadas_json" id="id_coordenadas_json"
+                            value="{{ form.coordenadas_json.value|default:'[]' }}">
+
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <label class="form-label">
+                                    <i class="bi bi-geo-alt text-primary me-1"></i>
+                                    Desenhar Polígono do Talhão no Mapa
+                                </label>
+                                <div class="alert alert-info py-2 d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        <small>Use as ferramentas de desenho para criar o polígono. Clique no mapa para
+                                            adicionar pontos.</small>
+                                    </span>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" id="citySearch" class="form-control"
+                                            placeholder="Buscar cidade (Ex: Sorriso, MT)">
+                                        <button class="btn btn-primary" type="button" id="btnSearchCity"><i
+                                                class="bi bi-search"></i></button>
+                                    </div>
+                                </div>
+                                <div id="map" style="height: 800px; border-radius: 8px; border: 2px solid #dee2e6;">
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" id="btnLimparMapa" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-trash me-1"></i>Limpar Desenho
+                                    </button>
+                                    <span id="areaCalculada" class="ms-3 text-muted"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between form-actions-mobile">
+                            <a href="{% url 'talhao_list' %}" class="btn btn-secondary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i>Cancelar
+                            </a>
+                            {% if talhao and talhao.pk %}
+                            <button type="button" class="btn btn-danger btn-lg mx-2" data-bs-toggle="modal"
+                                data-bs-target="#deleteModal">
+                                <i class="bi bi-trash me-2"></i>Excluir
+                            </button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle me-2"></i>Salvar Talhão
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+{% if talhao and talhao.pk %}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o talhão <strong>{{ talhao.nome }}</strong>?</p>
+                <p class="text-danger small"><i class="bi bi-exclamation-triangle me-1"></i>Esta ação não pode ser
+                    desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{% url 'talhao_delete' talhao.pk %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+<script>
+    let map;
+    let drawnItems;
+    let drawControl;
+    let parentPolygonLayer = null;
+    let siblingsLayers = [];
+
+    function initMap() {
+        let center = [-15.7801, -47.9292];
+        let zoom = 4;
+
+        const fazendaScript = document.getElementById('fazenda-coords');
+        if (fazendaScript) {
+            try {
+                const fData = JSON.parse(fazendaScript.textContent);
+                center = [fData.lat, fData.lon];
+                zoom = 15;
+            } catch(e) { console.error("Error parsing fazenda coords", e); }
+        }
+
+    const coordenadasSalvas = document.getElementById('id_coordenadas_json').value;
+    let coordenadas = [];
+
+    try {
+        const rawCoords = JSON.parse(coordenadasSalvas);
+        if (rawCoords && rawCoords.length > 0) {
+            if (rawCoords[0].lat !== undefined) {
+                coordenadas = rawCoords.map(c => [c.lat, c.lng]);
+            } else {
+                coordenadas = rawCoords;
+            }
+            center = coordenadas[0];
+            zoom = 15;
+        }
+    } catch (e) {
+        console.log('Sem coordenadas salvas');
+    }
+
+    map = L.map('map').setView(center, zoom);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri'
+    }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20
+    }).addTo(map);
+
+    // Fix visual: Forçar redesenho após carregamento
+    setTimeout(function() {
+        map.invalidateSize();
+    }, 1000);
+
+    const parentScript = document.getElementById('parent-coords-data');
+    if (parentScript) {
+    try {
+        const parentC = JSON.parse(parentScript.textContent);
+        let parentP = [];
+        if (parentC.length > 0) {
+            if (parentC[0].lat !== undefined) {
+                parentP = parentC.map(c => [c.lat, c.lng]);
+            } else {
+                parentP = parentC;
+            }
+            parentPolygonLayer = L.polygon(parentP, {
+                color: '#ffc107',
+                weight: 3,
+                dashArray: '10, 10',
+                fillOpacity: 0.05,
+                fillColor: '#ffc107',
+                interactive: false
+            }).addTo(map);
+
+            if (coordenadas.length === 0) {
+                map.fitBounds(parentPolygonLayer.getBounds());
+            }
+        }
+    } catch (e) { console.error("Error drawing parent poly", e); }
+    }
+
+    const siblingsScript = document.getElementById('siblings-data');
+    if (siblingsScript) {
+    try {
+        const siblings = JSON.parse(siblingsScript.textContent);
+        if (siblings) {
+        siblings.forEach(sib => {
+            if (sib.coordenadas && sib.coordenadas.length > 0) {
+                let sibCoords = [];
+                if (sib.coordenadas[0].lat !== undefined) {
+                    sibCoords = sib.coordenadas.map(c => [c.lat, c.lng]);
+                } else {
+                    sibCoords = sib.coordenadas;
+                }
+
+                const sibPoly = L.polygon(sibCoords, {
+                    color: '#dc3545',
+                    fillColor: '#dc3545',
+                    fillOpacity: 0.3,
+                    weight: 2
+                }).addTo(map);
+
+                sibPoly.bindPopup('<b>' + sib.nome + '</b><br>Area ocupada');
+                sibPoly.feature = { properties: { name: sib.nome } };
+                siblingsLayers.push(sibPoly);
+            }
+        });
+        }
+    } catch (e) { console.error("Error drawing siblings", e); }
+    }
+
+    drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    drawControl = new L.Control.Draw({
+        draw: {
+            polygon: {
+                allowIntersection: false,
+                showArea: true,
+                drawError: { color: '#e1e100', timeout: 1000 },
+                shapeOptions: { color: '#28a745', fillColor: '#28a745', fillOpacity: 0.4 }
+            },
+            polyline: false, circle: false, rectangle: false, marker: false, circlemarker: false
+        },
+        edit: { featureGroup: drawnItems, remove: true }
+    });
+    map.addControl(drawControl);
+
+    if (coordenadas && coordenadas.length > 0) {
+        const polygon = L.polygon(coordenadas, { color: '#28a745', fillColor: '#28a745', fillOpacity: 0.4 });
+        drawnItems.addLayer(polygon);
+        map.fitBounds(polygon.getBounds());
+        calcularArea(polygon);
+    }
+
+    map.on(L.Draw.Event.CREATED, function (e) {
+        if (parentPolygonLayer && typeof turf !== 'undefined') {
+            if (!validateContainment(e.layer)) {
+                alert('Erro: O novo subtalhao deve estar COMPLETAMENTE DENTRO do talhao pai.');
+                return;
+            }
+        }
+
+        if (siblingsLayers.length > 0 && typeof turf !== 'undefined') {
+            const overlapName = validateOverlap(e.layer);
+            if (overlapName) {
+                alert('Erro: O novo talhao sobrepoe o talhao existente: ' + overlapName);
+                return;
+            }
+        }
+
+        drawnItems.clearLayers();
+        drawnItems.addLayer(e.layer);
+        salvarCoordenadas(e.layer);
+        calcularArea(e.layer);
+    });
+
+    map.on(L.Draw.Event.EDITED, function (e) {
+        let valid = true;
+        let errorMessage = '';
+
+        e.layers.eachLayer(function (layer) {
+            if (typeof turf !== 'undefined') {
+                if (parentPolygonLayer && !validateContainment(layer)) {
+                    valid = false;
+                    errorMessage = 'A edicao deixou o subtalhao fora do talhao pai.';
+                }
+                if (valid && siblingsLayers.length > 0) {
+                    const overlapName = validateOverlap(layer);
+                    if (overlapName) {
+                        valid = false;
+                        errorMessage = 'A edicao sobrepos o talhao existente: ' + overlapName;
+                    }
+                }
+            }
+        });
+
+        if (!valid) {
+            alert('Erro: ' + errorMessage + ' Revertendo...');
+            document.getElementById('id_coordenadas_json').value = '[]';
+            document.getElementById('areaCalculada').textContent = 'Area Invalida';
+            // Idealmente recarregaríamos o mapa aqui, mas por segurança limpamos
+            drawnItems.clearLayers();
+            return;
+        }
+
+        e.layers.eachLayer(function (layer) {
+            salvarCoordenadas(layer);
+            calcularArea(layer);
+        });
+    });
+
+    map.on(L.Draw.Event.DELETED, function () {
+        document.getElementById('id_coordenadas_json').value = '[]';
+        document.getElementById('areaCalculada').textContent = '';
+    });
+
+    document.getElementById('btnLimparMapa').addEventListener('click', function () {
+        drawnItems.clearLayers();
+        document.getElementById('id_coordenadas_json').value = '[]';
+        document.getElementById('areaCalculada').textContent = '';
+    });
+
+    const btnSearch = document.getElementById('btnSearchCity');
+    const inputSearch = document.getElementById('citySearch');
+
+    function searchCity() {
+        const query = inputSearch.value;
+        if (!query) return;
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&countrycodes=br&limit=1';
+        btnSearch.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    map.setView([parseFloat(data[0].lat), parseFloat(data[0].lon)], 12);
+                } else {
+                    alert('Cidade nao encontrada.');
+                }
+            })
+            .catch(() => alert('Erro ao buscar cidade.'))
+            .finally(() => { btnSearch.innerHTML = '<i class="bi bi-search"></i>'; });
+    }
+
+    btnSearch.addEventListener('click', searchCity);
+    inputSearch.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); searchCity(); }
+    });
+    }
+
+    function validateContainment(layer) {
+        try {
+            const latLngs = layer.getLatLngs()[0];
+            const childCoords = latLngs.map(ll => [ll.lng, ll.lat]);
+            childCoords.push(childCoords[0]); // Fechar o polígono para o Turf
+            const childPoly = turf.polygon([childCoords]);
+
+            const parentLatLngs = parentPolygonLayer.getLatLngs()[0];
+            const parentCoords = parentLatLngs.map(ll => [ll.lng, ll.lat]);
+            parentCoords.push(parentCoords[0]); // Fechar o polígono pai
+            const parentPoly = turf.polygon([parentCoords]);
+
+            return turf.booleanWithin(childPoly, parentPoly);
+        } catch (e) {
+            console.error("Turf Validation Error (Containment)", e);
+            return true;
+        }
+    }
+
+    function validateOverlap(layer) {
+        try {
+            if (typeof turf === 'undefined') { console.error("Turf is undefined!"); return null; }
+
+            const latLngs = layer.getLatLngs()[0];
+            const childCoords = latLngs.map(ll => [ll.lng, ll.lat]);
+            childCoords.push(childCoords[0]);
+            const childPoly = turf.polygon([childCoords]);
+
+            for (let i = 0; i < siblingsLayers.length; i++) {
+                const siblingLayer = siblingsLayers[i];
+                const sibLatLngs = siblingLayer.getLatLngs()[0];
+                const sibCoords = sibLatLngs.map(ll => [ll.lng, ll.lat]);
+                sibCoords.push(sibCoords[0]);
+                const sibPoly = turf.polygon([sibCoords]);
+
+                const intersection = turf.intersect(childPoly, sibPoly);
+
+                if (intersection) {
+                    const area = turf.area(intersection);
+                    // Margem de erro pequena para evitar falsos positivos de borda
+                    if (area > 1) {
+                        const popupContent = siblingLayer.getPopup().getContent();
+                        const name = popupContent.replace(/<[^>]*>/g, '').split('Area')[0].trim();
+                        return name || "Vizinho";
+                    }
+                }
+            }
+            return null;
+        } catch (e) {
+            console.error("Turf Validation Error (Overlap)", e);
+            return null;
+        }
+    }
+
+    function salvarCoordenadas(layer) {
+        const latLngs = layer.getLatLngs()[0];
+        const coordenadas = latLngs.map(ll => ({ lat: ll.lat, lng: ll.lng }));
+        document.getElementById('id_coordenadas_json').value = JSON.stringify(coordenadas);
+    }
+
+    function calcularArea(layer) {
+        const areaM2 = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+        const areaHa = areaM2 / 10000;
+        document.getElementById('areaCalculada').textContent = 'Area: ' + areaHa.toFixed(4) + ' ha';
+        document.getElementById('id_area_hectares').value = areaHa.toFixed(4);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        initMap();
+
+        const fazendaSelect = document.getElementById('id_fazenda');
+        const isCreatePage = window.location.pathname.endsWith('/novo/');
+        const isEditPage = window.location.pathname.includes('/editar');
+
+        if (fazendaSelect && (isCreatePage || isEditPage)) {
+            fazendaSelect.addEventListener('change', function () {
+                const newFazendaId = this.value;
+                if (newFazendaId) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('fazenda', newFazendaId);
+                    window.location.href = url.toString();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

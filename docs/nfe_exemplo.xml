@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+    <NFe>
+        <infNFe versao="4.00">
+            <ide>
+                <nNF>12345</nNF>
+                <serie>1</serie>
+                <dhEmi>2024-12-19T10:30:00-03:00</dhEmi>
+                <tpNF>1</tpNF>
+            </ide>
+            <emit>
+                <CNPJ>12345678000190</CNPJ>
+                <xNome>Fornecedor de Insumos Agrícolas LTDA</xNome>
+                <xFant>AgroInsumos</xFant>
+            </emit>
+            <dest>
+                <CNPJ>98765432000110</CNPJ>
+                <xNome>Fazenda Santa Maria</xNome>
+            </dest>
+            <det nItem="1">
+                <prod>
+                    <cProd>SEM001</cProd>
+                    <xProd>SEMENTE DE SOJA BRS 388 - SACO 40KG</xProd>
+                    <NCM>12010010</NCM>
+                    <CFOP>5102</CFOP>
+                    <uCom>SC</uCom>
+                    <qCom>50.000</qCom>
+                    <vUnCom>320.0000</vUnCom>
+                    <vProd>16000.00</vProd>
+                    <uTrib>SC</uTrib>
+                    <qTrib>50.000</qTrib>
+                    <vUnTrib>320.0000</vUnTrib>
+                </prod>
+            </det>
+            <det nItem="2">
+                <prod>
+                    <cProd>FERT002</cProd>
+                    <xProd>FERTILIZANTE NPK 04-14-08 - SACO 50KG</xProd>
+                    <NCM>31052000</NCM>
+                    <CFOP>5102</CFOP>
+                    <uCom>SC</uCom>
+                    <qCom>100.000</qCom>
+                    <vUnCom>145.0000</vUnCom>
+                    <vProd>14500.00</vProd>
+                    <uTrib>SC</uTrib>
+                    <qTrib>100.000</qTrib>
+                    <vUnTrib>145.0000</vUnTrib>
+                </prod>
+            </det>
+            <det nItem="3">
+                <prod>
+                    <cProd>HERB003</cProd>
+                    <xProd>HERBICIDA GLIFOSATO 480 - GALAO 20L</xProd>
+                    <NCM>38089291</NCM>
+                    <CFOP>5102</CFOP>
+                    <uCom>GL</uCom>
+                    <qCom>10.000</qCom>
+                    <vUnCom>89.9000</vUnCom>
+                    <vProd>899.00</vProd>
+                    <uTrib>GL</uTrib>
+                    <qTrib>10.000</qTrib>
+                    <vUnTrib>89.9000</vUnTrib>
+                </prod>
+            </det>
+            <det nItem="4">
+                <prod>
+                    <cProd>FUNG004</cProd>
+                    <xProd>FUNGICIDA TRIFLOXISTROBINA + PROTIOCONAZOL 1L</xProd>
+                    <NCM>38089311</NCM>
+                    <CFOP>5102</CFOP>
+                    <uCom>L</uCom>
+                    <qCom>20.000</qCom>
+                    <vUnCom>215.5000</vUnCom>
+                    <vProd>4310.00</vProd>
+                    <uTrib>L</uTrib>
+                    <qTrib>20.000</qTrib>
+                    <vUnTrib>215.5000</vUnTrib>
+                </prod>
+            </det>
+            <total>
+                <ICMSTot>
+                    <vProd>35709.00</vProd>
+                    <vNF>35709.00</vNF>
+                </ICMSTot>
+            </total>
+        </infNFe>
+    </NFe>
+    <protNFe versao="4.00">
+        <infProt>
+            <chNFe>35241212345678000190550010000123451234567890</chNFe>
+            <dhRecbto>2024-12-19T10:35:00-03:00</dhRecbto>
+            <nProt>135241234567890</nProt>
+            <digVal>abc123def456</digVal>
+            <cStat>100</cStat>
+            <xMotivo>Autorizado o uso da NF-e</xMotivo>
+        </infProt>
+    </protNFe>
+</nfeProc>

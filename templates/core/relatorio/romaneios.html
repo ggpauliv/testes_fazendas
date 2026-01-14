@@ -1,0 +1,149 @@
+{% extends 'base.html' %} 
+
+{% block title %}Relatório de Colheita | Gestor Talhão{% endblock %} 
+
+{% block content %} 
+<div class="container-fluid py-4"> 
+    <div class="d-flex justify-content-between align-items-center mb-4"> 
+        <h1 class="h3 mb-0 text-gray-800">Relatório de Colheita e Qualidade</h1> 
+        
+        <form class="d-flex align-items-center row g-2" method="get">
+            <!-- Filtro Fazenda -->
+            <div class="col-auto" style="min-width: 200px;">
+                <select name="fazenda" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas as Fazendas</option>
+                    {% for fazenda in fazendas %}
+                    <option value="{{ fazenda.id }}" {% if filters.fazenda == fazenda.id|stringformat:"s" %}selected{% endif %}>
+                        {{ fazenda.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtro Safra -->
+            <div class="col-auto" style="min-width: 180px;">
+                <select name="safra" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Todas as Safras</option>
+                    {% for safra in safras %}
+                    <option value="{{ safra.id }}" {% if filters.safra == safra.id|stringformat:"s" %}selected{% endif %}>
+                        {{ safra.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div> 
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Colhido (sc)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.sacas|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                           <i class="bi bi-truck fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Média Umidade</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.umidade|floatformat:2 }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-moisture fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Quebra (kg)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.quebra|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-trash fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Tickets</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.tickets }}</div>
+                        </div>
+                        <div class="col-auto">
+                             <i class="bi bi-receipt fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Detalhada -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Romaneios</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Ticket</th>
+                            <th>Fazenda</th>
+                            <th>Safra</th>
+                            <th>Líquido (kg)</th>
+                            <th>Umidade (%)</th>
+                            <th>Impureza (%)</th>
+                            <th>Quebra (kg)</th>
+                            <th>Armazém</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in romaneios %}
+                        <tr>
+                            <td>{{ r.data|date:"d/m/Y" }}</td>
+                            <td><a href="{% url 'romaneio_detail' r.pk %}">{{ r.numero_ticket }}</a></td>
+                            <td>{{ r.fazenda.nome }}</td>
+                            <td>{{ r.plantio.safra.nome|default:"-" }}</td>
+                            <td class="fw-bold">{{ r.peso_liquido|floatformat:0 }}</td>
+                            <td class="{% if r.umidade_percentual > 14 %}text-danger{% endif %}">{{ r.umidade_percentual }}</td>
+                            <td>{{ r.impureza_percentual }}</td>
+                            <td class="text-danger">{{ r.peso_quebra_tecnica|default:"0" }}</td>
+                            <td>{{ r.armazem_terceiro.fornecedor|default:"Proprio" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-4">Nenhum romaneio encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div> 
+{% endblock %} 

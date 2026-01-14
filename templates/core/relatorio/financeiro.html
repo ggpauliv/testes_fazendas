@@ -1,0 +1,156 @@
+{% extends 'base.html' %} 
+
+{% block title %}Relatório Financeiro | Gestor Talhão{% endblock %} 
+
+{% block content %} 
+<div class="container-fluid py-4"> 
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4"> 
+        <h1 class="h3 mb-0 text-gray-800">Relatório Financeiro</h1> 
+        
+        <button class="btn btn-outline-primary" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Imprimir
+        </button>
+    </div> 
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-center">
+                 <!-- Filtro Fazenda -->
+                <div class="col-auto">
+                    <label class="col-form-label">Fazenda:</label>
+                </div>
+                <div class="col-auto" style="min-width: 250px;">
+                    <select name="fazenda" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">Todas as Fazendas</option>
+                        {% for f in fazendas %}
+                        <option value="{{ f.id }}" {% if fazenda_selecionada.id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Volume Vendido (sc)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.vendido|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-file-text fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Receita Fixada (R$)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">R$ {{ totais.receita_fixada|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-cash-stack fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">% Fixado</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.percentual_fixado|floatformat:1 }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <div class="progress progress-sm mr-2">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: {{ totais.percentual_fixado|stringformat:'f' }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Saldo a Fixar (sc)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totais.pendente|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-pause-circle fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Detalhada -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Posição de Contratos</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Contrato</th>
+                            <th>Cliente</th>
+                            <th>Volume Total</th>
+                            <th>Volume Fixado</th>
+                            <th>Saldo Aberto</th>
+                            <th>Preço Médio (R$)</th>
+                            <th>Total Financeiro (R$)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dados %}
+                        <tr>
+                            <td>#{{ item.contrato.id }}</td>
+                            <td>{{ item.contrato.cliente }}</td>
+                            <td>{{ item.contrato.quantidade_sacas|floatformat:2 }}</td>
+                            <td class="text-success fw-bold">{{ item.fixado_qtd|floatformat:2 }}</td>
+                            <td class="text-warning fw-bold">{{ item.pendente|floatformat:2 }}</td>
+                            <td>R$ {{ item.preco_medio|floatformat:2 }}</td>
+                            <td>R$ {{ item.fixado_valor|floatformat:2 }}</td>
+                            <td style="width: 15%">
+                               <div class="d-flex align-items-center">
+                                    <span class="me-2">{{ item.percentual|floatformat:0 }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 10px;">
+                                        <div class="progress-bar {% if item.percentual >= 100 %}bg-success{% else %}bg-info{% endif %}" role="progressbar" 
+                                             style="width: {{ item.percentual|stringformat:'f' }}%">
+                                        </div>
+                                    </div>
+                               </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">Nenhum contrato encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div> 
+{% endblock %} 

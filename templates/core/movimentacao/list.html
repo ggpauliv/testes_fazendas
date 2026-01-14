@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}Movimentações de Estoque{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 fw-bold"><i class="bi bi-arrow-left-right text-info me-2"></i>Movimentações</h1>
+                <p class="text-muted mb-0">Histórico de entradas e saídas de estoque</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{% url 'movimentacao_entrada' %}" class="btn btn-primary btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Nova Entrada
+                </a>
+                <a href="{% url 'movimentacao_saida' %}" class="btn btn-success btn-lg">
+                    <i class="bi bi-box-arrow-right me-2"></i>Nova Saída
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0 fw-bold"><i class="bi bi-funnel me-2"></i>Filtros de Pesquisa</h6>
+        </div>
+        <div class="card-body py-3">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small fw-bold">Buscar</label>
+                    <input type="text" name="busca" class="form-control" placeholder="Produto, NFe ou Fornecedor"
+                        value="{{ busca|default:'' }}">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold">Tipo</label>
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ENTRADA" {% if tipo_filtro == 'ENTRADA' %}selected{% endif %}>Entrada</option>
+                        <option value="SAIDA" {% if tipo_filtro == 'SAIDA' %}selected{% endif %}>Saída</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary me-1">
+                        <i class="bi bi-search me-1"></i> Filtrar
+                    </button>
+                    <a href="{% url 'movimentacao_list' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            {% if movimentacoes %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Produto</th>
+                            <th class="text-end">Quantidade</th>
+                            <th class="text-end">Valor Unit.</th>
+                            <th class="text-end">Valor Total</th>
+                            <th>Fazenda</th>
+                            <th>Fornecedor/Doc</th>
+                            <th>Data</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in movimentacoes %}
+                        <tr>
+                            <td>
+                                {% if mov.tipo == 'ENTRADA' %}
+                                <span class="badge bg-success"><i class="bi bi-arrow-down me-1"></i>Entrada</span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-arrow-up me-1"></i>Saída</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ mov.produto.nome }}</div>
+                            </td>
+                            <td class="text-end">{{ mov.quantidade|floatformat:2 }} {{ mov.produto.unidade }}</td>
+                            <td class="text-end">R$ {{ mov.valor_unitario|floatformat:2 }}</td>
+                            <td class="text-end fw-semibold">R$ {{ mov.valor_total|floatformat:2 }}</td>
+                            <td>
+                                {% if mov.fazenda %}
+                                <span class="text-dark"><i class="bi bi-house-door me-1"></i>{{ mov.fazenda.nome }}</span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if mov.fornecedor %}
+                                <small>{{ mov.fornecedor }}</small>
+                                {% elif mov.cliente %}
+                                <small>{{ mov.cliente }}</small>
+                                {% endif %}
+                                {% if mov.numero_nfe %}
+                                <br><small class="text-muted">Doc: {{ mov.numero_nfe }}</small>
+                                {% if mov.contas_pagar.all or mov.contas_receber.all %}
+                                <br>
+                                {% if mov.contas_pagar.all %}
+                                <a href="{% url 'conta_pagar_list' %}?busca={{ mov.numero_nfe }}" class="text-decoration-none">
+                                    <span class="badge bg-danger-subtle text-danger small">
+                                        <i class="bi bi-currency-dollar"></i> Financeiro Gerado
+                                    </span>
+                                </a>
+                                {% elif mov.contas_receber.all %}
+                                <a href="{% url 'conta_receber_list' %}?busca={{ mov.numero_nfe }}" class="text-decoration-none">
+                                    <span class="badge bg-success-subtle text-success small">
+                                        <i class="bi bi-currency-dollar"></i> Financeiro Gerado
+                                    </span>
+                                </a>
+                                {% endif %}
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">
+                                <small>{{ mov.data_movimentacao|date:"d/m/Y H:i" }}</small>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'movimentacao_edit' mov.id %}" class="btn btn-outline-primary" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="{% url 'movimentacao_delete' mov.id %}" class="btn btn-outline-danger" title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if movimentacoes.has_other_pages %}
+            <div class="card-footer bg-white">
+                <nav>
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if movimentacoes.has_previous %}
+                        <li class="page-item"><a class="page-link"
+                                href="?page={{ movimentacoes.previous_page_number }}&busca={{ busca|default:'' }}&data_inicio={{ data_inicio|default:'' }}&data_fim={{ data_fim|default:'' }}&tipo={{ tipo_filtro|default:'' }}">Anterior</a>
+                        </li>
+                        {% endif %}
+                        {% for num in movimentacoes.paginator.page_range %}
+                        <li class="page-item {% if movimentacoes.number == num %}active{% endif %}">
+                            <a class="page-link"
+                                href="?page={{ num }}&busca={{ busca|default:'' }}&data_inicio={{ data_inicio|default:'' }}&data_fim={{ data_fim|default:'' }}&tipo={{ tipo_filtro|default:'' }}">{{
+                                num }}</a>
+                        </li>
+                        {% endfor %}
+                        {% if movimentacoes.has_next %}
+                        <li class="page-item"><a class="page-link"
+                                href="?page={{ movimentacoes.next_page_number }}&busca={{ busca|default:'' }}&data_inicio={{ data_inicio|default:'' }}&data_fim={{ data_fim|default:'' }}&tipo={{ tipo_filtro|default:'' }}">Próximo</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-arrow-left-right text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Nenhuma movimentação registrada</h4>
+                <p class="text-muted">Registre uma movimentação manual para começar.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

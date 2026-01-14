@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_filters %}
+
+{% block title %}Dashboard | Gestor Talhão{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<!-- Leaflet JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-2 mb-xl-3">
+    <div class="col-auto d-none d-sm-block">
+        <h3><strong>Dashboard</strong> Geral</h3>
+    </div>
+
+    <div class="col-auto ms-auto text-end mt-n1">
+         <form method="get" class="d-flex align-items-center bg-white p-1 rounded shadow-sm border">
+            <span class="me-2 text-muted ms-2 small">Fazenda:</span>
+            <select name="fazenda" class="form-select form-select-sm border-0 bg-light" style="width: auto;" onchange="this.form.submit()">
+                <option value="">Todas</option>
+                {% for f in fazendas %}
+                <option value="{{ f.id }}" {% if fazenda_selecionada.id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                {% endfor %}
+            </select>
+             {% if fazenda_selecionada %}
+            <a href="{% url 'dashboard' %}" class="btn btn-sm text-danger ms-1" title="Limpar Filtro">
+                <i class="bi bi-x-lg"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Row 1: KPI Resumo -->
+<div class="row">
+    <!-- Talhões -->
+    <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                        <h3 class="mb-2">{{ total_talhoes }}</h3>
+                        <p class="mb-2">Talhões Ativos</p>
+                        <div class="mb-0">
+                            <span class="text-muted">{{ area_total|formato_br }} ha</span>
+                        </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                        <div class="stat text-success" style="background:#d1e7dd; padding: 10px; border-radius: 8px;">
+                            <i class="bi bi-map fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Produtos -->
+    <div class="col-12 col-md-6 col-xxl-3 d-flex">
+         <div class="card flex-fill">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                        <h3 class="mb-2">{{ total_produtos }}</h3>
+                        <p class="mb-2">Produtos</p>
+                        <div class="mb-0">
+                             {% if produtos_estoque_baixo > 0 %}
+                            <span class="badge bg-danger-subtle text-danger"> <i class="bi bi-exclamation-triangle"></i> {{ produtos_estoque_baixo }} Baixos </span>
+                            {% else %}
+                             <span class="text-muted">Estoque Normal</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                         <div class="stat text-primary" style="background:#d3e2f7; padding: 10px; border-radius: 8px;">
+                            <i class="bi bi-box-seam fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custo Total -->
+    <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                         <h3 class="mb-2">R$ {{ custo_total_ciclos|formato_br:0 }}</h3>
+                        <p class="mb-2">Custo Atual (Ciclos)</p>
+                         <div class="mb-0">
+                            <span class="text-muted">Investimento Ativo</span>
+                        </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                        <div class="stat text-warning" style="background:#fcebc9; padding: 10px; border-radius: 8px;">
+                            <i class="bi bi-cash-stack fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lucro (Estimado) -->
+    <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-4">
+                <div class="d-flex align-items-start">
+                    <div class="flex-grow-1">
+                         <h3 class="mb-2">R$ {{ lucro_estimado|formato_br:0 }}</h3>
+                        <p class="mb-2">Lucro Estimado</p>
+                        <div class="mb-0">
+                             <span class="text-muted">Receita: R$ {{ receita_estimada_ciclos|formato_br:0 }}</span>
+                        </div>
+                    </div>
+                    <div class="d-inline-block ms-3">
+                         <div class="stat text-info" style="background:#cff4fc; padding: 10px; border-radius: 8px;">
+                            <i class="bi bi-graph-up-arrow fs-3"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 2: Financeiro & Produção (Collapsed visuals or same importance) -->
+<h5 class="h6 text-muted mb-3 mt-2 text-uppercase">Produção & Comercial</h5>
+<div class="row">
+    <!-- Volume Contratado -->
+     <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-1">{{ total_contratos_sacas|formato_br:0 }} sc</h4>
+                        <p class="mb-0 text-muted small">Volume Contratado</p>
+                    </div>
+                     <div class="stat text-primary" style="background:#e0e7ff; padding: 8px; border-radius: 6px;">
+                        <i class="bi bi-file-earmark-text fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receita Contratada -->
+     <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-1">R$ {{ total_contratos_valor|formato_br:0 }}</h4>
+                        <p class="mb-0 text-muted small">Receita Contratada</p>
+                    </div>
+                     <div class="stat text-success" style="background:#d1e7dd; padding: 8px; border-radius: 6px;">
+                        <i class="bi bi-currency-dollar fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Colhido -->
+     <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-1">{{ total_colhido_kg|formato_br:0 }} kg</h4>
+                        <p class="mb-0 text-muted small">Total Colhido (Liq)</p>
+                    </div>
+                     <div class="stat text-warning" style="background:#fff3cd; padding: 8px; border-radius: 6px;">
+                        <i class="bi bi-truck fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Sacas Est -->
+     <div class="col-12 col-md-6 col-xxl-3 d-flex">
+        <div class="card flex-fill">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                        <h4 class="mb-1">{{ total_colhido_sacas|formato_br:1 }} sc</h4>
+                        <p class="mb-0 text-muted small">Total Sacas (Est)</p>
+                    </div>
+                     <div class="stat text-info" style="background:#cff4fc; padding: 8px; border-radius: 6px;">
+                        <i class="bi bi-box-seam fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 3: Map & Ciclos List -->
+<div class="row">
+    <div class="col-12 col-lg-8 d-flex">
+        <div class="card flex-fill w-100">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="card-title mb-0">Mapa dos Talhões</h5>
+                 <a href="{% url 'talhao_create' %}" class="btn btn-sm btn-success">Novo Talhão</a>
+            </div>
+            <div class="card-body p-0">
+                <div id="map-dashboard" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-4 d-flex">
+        <div class="card flex-fill w-100">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="card-title mb-0">Ciclos Ativos</h5>
+                 <a href="{% url 'ciclo_create' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus"></i></a>
+            </div>
+            <div class="card-body p-0">
+                {% if ciclos_ativos %}
+                <ul class="list-group list-group-flush">
+                    {% for ciclo in ciclos_ativos %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-4 py-3">
+                        <div>
+                            <a href="{% url 'ciclo_detail' ciclo.pk %}" class="text-decoration-none fw-bold text-dark">{{ ciclo.nome_safra }}</a>
+                            <div class="text-muted small mt-1">{{ ciclo.cultura }} - {{ ciclo.talhao.nome }}</div>
+                        </div>
+                        <span class="badge bg-success">Ativo</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                 <div class="text-center py-5 text-muted">
+                    <i class="bi bi-calendar-x fs-1 opacity-50"></i>
+                    <p class="mt-2 mb-0">Nenhum ciclo ativo</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 4: Tables (Last Operations & Movements) -->
+<div class="row">
+    <div class="col-12 col-lg-6 d-flex">
+        <div class="card flex-fill">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="card-title mb-0">Últimas Operações</h5>
+                <a href="{% url 'operacao_list' %}" class="text-decoration-none small">Ver todas</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover my-0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th class="d-none d-xl-table-cell">Produto</th>
+                            <th class="d-none d-xl-table-cell">Talhão</th>
+                            <th class="d-none d-md-table-cell text-end">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for op in ultimas_operacoes %}
+                        <tr>
+                            <td>
+                                {% with item=op.itens.first %}
+                                    <span class="badge bg-secondary">{{ item.atividade.nome|default:"-" }}</span>
+                                {% endwith %}
+                            </td>
+                            <td class="d-none d-xl-table-cell">
+                                {% with item=op.itens.first %}
+                                    {{ item.produto.nome|default:item.descricao|default:"-" }}
+                                {% endwith %}
+                            </td>
+                            <td class="d-none d-xl-table-cell">
+                                {% with t=op.talhoes.first %}
+                                    {{ t.nome|default:"Multi" }} {% if op.talhoes.count > 1 %}(+{{ op.talhoes.count|add:"-1" }}){% endif %}
+                                {% endwith %}
+                            </td>
+                            <td class="d-none d-md-table-cell text-end text-muted">{{ op.data_operacao|date:"d/m/Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">Nenhuma operação.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6 d-flex">
+        <div class="card flex-fill">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="card-title mb-0">Últimas Movimentações</h5>
+                <a href="{% url 'movimentacao_list' %}" class="text-decoration-none small">Ver todas</a>
+            </div>
+             <div class="table-responsive">
+                <table class="table table-hover my-0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th class="d-none d-xl-table-cell">Produto</th>
+                            <th>Qtd</th>
+                            <th class="d-none d-md-table-cell text-end">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in ultimas_movimentacoes %}
+                        <tr>
+                            <td>
+                                {% if mov.tipo == 'ENTRADA' %}
+                                <span class="badge bg-success"><i class="bi bi-arrow-down"></i> Ent</span>
+                                {% else %}
+                                <span class="badge bg-danger"><i class="bi bi-arrow-up"></i> Sai</span>
+                                {% endif %}
+                            </td>
+                            <td class="d-none d-xl-table-cell">{{ mov.produto.nome }}</td>
+                            <td>{{ mov.quantidade }}</td>
+                            <td class="d-none d-md-table-cell text-end text-muted">{{ mov.data_movimentacao|date:"d/m/Y" }}</td>
+                        </tr>
+                         {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">Nenhuma movimentação.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ talhoes_json|json_script:"data-talhoes" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Helper to safely parse JSON
+        function getJsonData(id) {
+            try {
+                const el = document.getElementById(id);
+                if (!el) return [];
+                return JSON.parse(el.textContent || '[]');
+            } catch (e) {
+                console.error('Error parsing JSON for ' + id, e);
+                return [];
+            }
+        }
+
+        let talhoesData = getJsonData('data-talhoes');
+
+        // Initialize Map
+        if (document.getElementById('map-dashboard')) {
+            // Default Center (Brazil)
+            let center = [-15.7801, -47.9292];
+            let zoom = 4;
+
+            // If we have data, center on the first plot
+            if (talhoesData && talhoesData.length > 0 && talhoesData[0].coordenadas.length > 0) {
+                center = [talhoesData[0].coordenadas[0].lat, talhoesData[0].coordenadas[0].lng];
+                zoom = 14;
+            }
+
+            // Create Map (Scroll Zoom Disabled)
+            const map = L.map('map-dashboard', { scrollWheelZoom: false }).setView(center, zoom);
+
+            // Satellite Layer (Esri)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri'
+            }).addTo(map);
+
+            // Labels Layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            /* Google Layer Removed (Potential Cost/TOS issues) */
+
+            // Feature Group
+            const featureGroup = L.featureGroup().addTo(map);
+
+            if (talhoesData) {
+                talhoesData.forEach(talhao => {
+                    if (talhao.coordenadas && talhao.coordenadas.length > 0) {
+                        const polygonCoords = talhao.coordenadas.map(c => [c.lat, c.lng]);
+
+                        const polygon = L.polygon(polygonCoords, {
+                            color: '#28a745',
+                            weight: 2,
+                            opacity: 0.9,
+                            fillColor: '#28a745',
+                            fillOpacity: 0.35
+                        }).addTo(featureGroup);
+
+                        const popupContent = `
+                            <div style="min-width: 150px;">
+                                <h6 style="margin: 0 0 5px 0; font-weight: bold;">${talhao.nome}</h6>
+                                <p style="margin: 0; font-size: 13px; color: #555;">
+                                    <strong>Área:</strong> ${talhao.area} ha<br>
+                                    <strong>Cultura:</strong> ${talhao.cultura}
+                                </p>
+                            </div>
+                        `;
+
+                        polygon.bindPopup(popupContent);
+                    }
+                });
+            }
+
+            if (featureGroup.getLayers().length > 0) {
+                map.fitBounds(featureGroup.getBounds());
+            }
+            
+            // Invalidate size to ensure rendering
+            setTimeout(function() {
+               map.invalidateSize();
+            }, 100);
+        }
+    });
+</script>
+{% endblock %}

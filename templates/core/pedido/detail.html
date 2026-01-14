@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalhes do Contrato | Gestor Talhão{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <h1 class="h3 mb-0 text-gray-800">Pedido #{{ pedido.id }}</h1>
+                    <p class="text-muted mb-0">{{ pedido.fornecedor }}</p>
+        </div>
+        <div>
+            <a href="{% url 'pedido_pdf' pedido.pk %}" class="btn btn-outline-danger me-2" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
+            <a href="{% url 'pedido_edit' pedido.pk %}" class="btn btn-warning me-2">
+                <i class="bi bi-pencil me-1"></i>Editar
+            </a>
+            <a href="{% url 'pedido_list' %}" class="btn btn-secondary">Voltar</a>
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Valor Total</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">R$ {{ pedido.valor_total|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-dollar fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Progresso Entrega</div>
+                            <div class="row no-gutters align-items-center">
+                                <div class="col-auto">
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ pedido.progresso_geral|floatformat:0 }}%</div>
+                                </div>
+                                <div class="col">
+                                    <div class="progress progress-sm mr-2">
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                            style="width: {{ pedido.progresso_geral|floatformat:0 }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-box-seam fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Status</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pedido.get_status_display }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-info-circle fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Data Pedido</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pedido.data_pedido|date:"d/m/Y" }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-calendar fs-2 text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalhamento dos Itens -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Itens do Pedido</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th>Produto</th>
+                            <th>Qtd. Solicitada</th>
+                            <th>Valor Unit.</th>
+                            <th>Total Item</th>
+                            <th>Entregue</th>
+                            <th>Saldo</th>
+                            <th>Status Item</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in pedido.itens.all %}
+                        <tr>
+                            <td>{{ item.produto.nome }}</td>
+                            <td>{{ item.quantidade|floatformat:2 }} {{ item.produto.unidade }}</td>
+                            <td>R$ {{ item.valor_unitario|floatformat:2 }}</td>
+                            <td>R$ {{ item.valor_total|floatformat:2 }}</td>
+                            <td>
+                                <span class="fw-bold text-success">{{ item.quantidade_entregue|floatformat:2 }}</span>
+                            </td>
+                            <td>
+                                {% if item.saldo_restante > 0 %}
+                                <span class="text-warning fw-bold">{{ item.saldo_restante|floatformat:2 }}</span>
+                                {% else %}
+                                <span class="text-muted">Zerado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.status == 'ABERTO' %}
+                                <span class="badge bg-primary">Aberto</span>
+                                {% elif item.status == 'PARCIAL' %}
+                                <span class="badge bg-warning text-dark">Parcial</span>
+                                {% elif item.status == 'CONCLUIDO' %}
+                                <span class="badge bg-success">Concluído</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Cancelado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observações e Arquivos -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Observações</h6>
+                </div>
+                <div class="card-body">
+                    {{ pedido.observacoes|linebreaks|default:"Nenhuma observação registrada." }}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Arquivo Anexo (Pedido)</h6>
+                </div>
+                <div class="card-body text-center">
+                    {% if pedido.arquivo %}
+                    <i class="bi bi-file-earmark-pdf fs-1 text-danger d-block mb-3"></i>
+                    <a href="{{ pedido.arquivo.url }}" target="_blank" class="btn btn-outline-primary">
+                        Visualizar Arquivo do Pedido
+                    </a>
+                    {% else %}
+                    <p class="text-muted py-4">Nenhum arquivo anexado.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Histórico de Entregas (Movimentações) -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Histórico de Entregas (NF-es)</h6>
+            <a href="{% url 'movimentacao_create' %}" class="btn btn-sm btn-success">
+                <i class="bi bi-plus-lg me-1"></i>Registrar Entrega / NFe
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Data Recebimento</th>
+                            <th>Produto</th>
+                            <th>NFe (Número)</th>
+                            <th>Quantidade Recebida</th>
+                            <th>Arquivo NFe</th>
+                            <th>Obs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mov in movimentacoes %}
+                        <tr>
+                            <td>{{ mov.data_movimentacao|date:"d/m/Y H:i" }}</td>
+                            <td>{{ mov.item_pedido.produto.nome }}</td>
+                            <td>{{ mov.numero_nfe|default:"-" }}</td>
+                            <td class="fw-bold text-success">{{ mov.quantidade|floatformat:2 }} {{
+                                mov.item_pedido.produto.unidade }}</td>
+                            <td>
+                                {% if mov.arquivo_nfe %}
+                                <a href="{{ mov.arquivo_nfe.url }}" target="_blank"
+                                    class="btn btn-sm btn-outline-danger" title="Baixar NFe/XML">
+                                    <i class="bi bi-file-earmark-arrow-down me-1"></i>Baixar
+                                </a>
+                                {% else %}
+                                <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ mov.observacao|default:""|truncatechars:50 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-truck fs-1 d-block mb-2"></i>
+                                Nenhuma entrega registrada para este pedido.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Romaneio {{ romaneio.numero_ticket }}{% endblock %}
+
+{% block content %}
+<style>
+    /* Estilo para impressão - Garante que seja um "Ticket" limpo */
+    @media print {
+        /* Configuração da Página - Remove cabeçalhos/rodapés do navegador */
+        @page {
+            margin: 0.5cm;
+            size: A4;
+        }
+
+        /* Ocultar elementos de navegação do sistema */
+        .navbar, .market-ticker, .footer, .d-print-none { 
+            display: none !important; 
+        }
+        
+        /* Resetar background e margens para impressão full-page */
+        html, body { 
+            height: 100%;
+            background-color: white !important; 
+            margin: 0 !important; 
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            font-size: 11pt; /* Fonte levemente menor para garantir cabimento */
+        }
+        
+        /* Layout fluido para impressão */
+        .main-content {
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        
+        /* Remover sombras e bordas do card */
+        .card { 
+            box-shadow: none !important; 
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .card-body {
+            padding: 1rem !important; /* Reduzir padding interno */
+        }
+        
+        /* Compactar espaçamentos verticais para caber em 1 página */
+        .mb-4, .mb-5 { margin-bottom: 1.5rem !important; }
+        .pb-4 { padding-bottom: 1rem !important; }
+        .g-5 { --bs-gutter-y: 1.5rem !important; }
+    }
+</style>
+
+<div class="container-fluid py-3 d-print-none">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'romaneio_list' %}" class="text-decoration-none">Romaneios</a></li>
+                <li class="breadcrumb-item active">{{ romaneio.numero_ticket }}</li>
+            </ol>
+        </nav>
+        <div class="btn-group">
+            <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-printer me-2"></i>Imprimir
+            </button>
+            <a href="{% url 'romaneio_edit' romaneio.pk %}" class="btn btn-primary btn-sm">
+                <i class="bi bi-pencil me-2"></i>Editar
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Ticket Visual Minimalista -->
+    <div class="card border-0 shadow-sm mx-auto" style="max-width: 850px;">
+        <div class="card-body p-4">
+            
+            <!-- Cabeçalho do Ticket -->
+            <div class="border-bottom pb-3 mb-3">
+                <div class="row align-items-end">
+                    <div class="col-8">
+                        <h6 class="text-uppercase text-muted letter-spacing-2 mb-1" style="font-size: 0.7rem; letter-spacing: 2px;">Ticket de Pesagem</h6>
+                        <h1 class="display-6 fw-bold text-dark mb-0">#{{ romaneio.numero_ticket }}</h1>
+                    </div>
+                    <div class="col-4 text-end">
+                        <div class="text-muted mb-0 small">{{ romaneio.data|date:"d" }} de {{ romaneio.data|date:"F" }}, {{ romaneio.data|date:"Y" }}</div>
+                        <div class="fw-bold text-primary">{{ romaneio.empresa.nome|default:"AgroTalhões" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid de Informações -->
+            <div class="row g-4 mb-4">
+                <!-- Coluna 1: Origem -->
+                <div class="col-md-4">
+                    <h6 class="text-uppercase text-muted fw-bold mb-2 small" style="font-size: 0.7rem;">Origem</h6>
+                    <div class="mb-1">
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">Fazenda</small>
+                        <span class="fw-medium">{{ romaneio.fazenda.nome }}</span>
+                    </div>
+                    <div class="mb-1">
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">Talhão</small>
+                        <span class="fw-medium">{{ romaneio.talhao.nome }}</span>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">Cultura</small>
+                        <span class="badge bg-light text-dark border">{{ romaneio.plantio.cultura|default:"-" }}</span>
+                    </div>
+                </div>
+
+                <!-- Coluna 2: Transporte -->
+                <div class="col-md-4">
+                    <h6 class="text-uppercase text-muted fw-bold mb-2 small" style="font-size: 0.7rem;">Transporte</h6>
+                    <div class="mb-1">
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">Motorista</small>
+                        <span class="fw-medium">{{ romaneio.motorista|default:"-" }}</span>
+                    </div>
+                    <div class="mb-1">
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">Placa</small>
+                        <span class="fw-bold font-monospace bg-light px-2 py-1 rounded">{{ romaneio.placa|default:"---" }}</span>
+                    </div>
+                    {% if romaneio.armazem_terceiro %}
+                    <div>
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">Destino</small>
+                        <span class="fw-medium">{{ romaneio.armazem_terceiro.fornecedor.nome }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Coluna 3: Pesagem Bruta -->
+                <div class="col-md-4">
+                    <h6 class="text-uppercase text-muted fw-bold mb-2 small" style="font-size: 0.7rem;">Pesagem</h6>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Bruto</span>
+                        <span class="fw-bold">{{ romaneio.peso_bruto }} kg</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Tara</span>
+                        <span class="fw-bold">- {{ romaneio.peso_tara }} kg</span>
+                    </div>
+                    <div class="d-flex justify-content-between pt-2 border-top">
+                        <span class="fw-bold">Peso Carga</span>
+                        <span class="fw-bold text-primary">{{ romaneio.peso_carga|floatformat:0 }} kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção de Classificação e Descontos (Tabela Clean) -->
+            <div class="bg-light rounded-3 p-3 mb-4">
+                <h6 class="text-uppercase text-muted fw-bold mb-2 small" style="font-size: 0.7rem;">Classificação e Descontos</h6>
+                <div class="table-responsive">
+                    <table class="table table-borderless table-sm mb-0">
+                        <thead class="text-muted" style="border-bottom: 1px dashed #dee2e6;">
+                            <tr>
+                                <th class="pb-2 fw-normal small">Item</th>
+                                <th class="pb-2 fw-normal text-center small">Classificação (%)</th>
+                                <th class="pb-2 fw-normal text-end small">Desconto (kg)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="pt-2">Umidade</td>
+                                <td class="pt-2 text-center">{{ romaneio.umidade_percentual|floatformat:2 }}%</td>
+                                <td class="pt-2 text-end text-danger">- {{ romaneio.desconto_kg_umidade|floatformat:0 }} kg</td>
+                            </tr>
+                            <tr>
+                                <td>Impureza</td>
+                                <td class="text-center">{{ romaneio.impureza_percentual|floatformat:2 }}%</td>
+                                <td class="text-end text-danger">- {{ romaneio.desconto_kg_impureza|floatformat:0 }} kg</td>
+                            </tr>
+                            <tr>
+                                <td>Avariado</td>
+                                <td class="text-center">{{ romaneio.avariado_percentual|floatformat:2 }}%</td>
+                                <td class="text-end text-danger">- {{ romaneio.desconto_kg_avariado|floatformat:0 }} kg</td>
+                            </tr>
+                            {% if romaneio.peso_quebra_tecnica > 0 %}
+                            <tr>
+                                <td>Quebra Técnica</td>
+                                <td class="text-center">-</td>
+                                <td class="text-end text-danger">- {{ romaneio.peso_quebra_tecnica|floatformat:0 }} kg</td>
+                            </tr>
+                            {% endif %}
+                            <tr style="border-top: 1px dashed #dee2e6;">
+                                <td class="pt-2 fw-bold text-dark">Total Descontos</td>
+                                <td class="pt-2"></td>
+                                <td class="pt-2 text-end fw-bold text-danger">- {{ romaneio.total_descontos_kg|add:romaneio.peso_quebra_tecnica|floatformat:0 }} kg</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Resultado Final (Highlight) -->
+            <div class="row align-items-center mt-4">
+                <div class="col-md-6">
+                    <div class="text-muted fst-italic" style="font-size: 0.75rem;">
+                        <i class="bi bi-check-circle me-1"></i>Conferido em {{ romaneio.updated_at|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="px-4 py-2 bg-success bg-opacity-10 border border-success rounded-3 d-inline-block text-start">
+                        <small class="text-success text-uppercase fw-bold d-block mb-1" style="font-size: 0.65rem; letter-spacing: 1px;">Líquido Armazém</small>
+                        <span class="display-6 fw-bold text-success">{{ romaneio.peso_liquido|floatformat:0 }}</span>
+                        <span class="fs-5 text-success ms-1">kg</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body { background-color: white !important; }
+        .d-print-none { display: none !important; }
+        .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+        .container { max-width: 100% !important; padding: 0 !important; }
+    }
+</style>
+{% endblock %}

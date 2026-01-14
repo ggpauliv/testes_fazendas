@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Pedido de Compra Nº {{ pedido.id }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+            @frame footer {
+                -pdf-frame-content: footerContent;
+                bottom: 0cm;
+                margin-left: 2cm;
+                margin-right: 2cm;
+                height: 1cm;
+            }
+        }
+        
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #222;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #444;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            font-size: 16pt;
+            margin: 0;
+            text-transform: uppercase;
+            color: #000;
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            font-size: 9pt;
+            color: #666;
+        }
+
+        .section-title {
+            background-color: #eee;
+            border-left: 5px solid #444;
+            padding: 8px 10px;
+            margin: 15px 0 10px;
+            font-size: 11pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .party-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #fff;
+        }
+
+        .party-title {
+            font-weight: bold;
+            font-size: 9pt;
+            text-transform: uppercase;
+            color: #444;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 3px;
+        }
+
+        table.items {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            margin-top: 10px;
+        }
+
+        table.items th {
+            background-color: #f0f0f0;
+            padding: 8px;
+            border: 1px solid #ccc;
+            text-align: left;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+
+        table.items td {
+            padding: 8px;
+            border: 1px solid #ccc;
+            font-size: 9pt;
+            vertical-align: middle;
+        }
+
+        .col-prod { width: 40%; text-align: left; }
+        .col-qty { width: 15%; text-align: right; }
+        .col-unit { width: 15%; text-align: center; }
+        .col-price { width: 15%; text-align: right; }
+        .col-total { width: 15%; text-align: right; }
+
+        .total-row td {
+            font-weight: bold;
+            background-color: #f8f8f8;
+            font-size: 10pt;
+            white-space: nowrap;
+        }
+
+        .signatures {
+            margin-top: 60px;
+            width: 100%;
+        }
+
+        .signature-line {
+            border-top: 1px solid #000;
+            margin-top: 30px;
+            padding-top: 5px;
+            text-align: center;
+        }
+
+        #footerContent {
+            font-size: 7pt;
+            text-align: center;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Pedido de Compra</h1>
+        <p>Nº {{ pedido.id }}</p>
+    </div>
+
+    <div class="section-title">1. Partes Envolvidas</div>
+    
+    <!-- Comprador (Empresa) -->
+    <div class="party-box">
+        <div class="party-title">Comprador (Empresa)</div>
+        <div><strong>{{ empresa.nome }}</strong></div>
+        {% if empresa.cnpj %}<div>CNPJ: {{ empresa.cnpj }}</div>{% endif %}
+        <div>{{ empresa.cidade }} - {{ empresa.estado }}</div>
+    </div>
+
+    <!-- Fornecedor -->
+    <div class="party-box">
+        <div class="party-title">Fornecedor (Vendedor)</div>
+        <div><strong>{{ pedido.fornecedor.nome }}</strong></div>
+        {% if pedido.fornecedor.cpf_cnpj %}<div>CPF/CNPJ: {{ pedido.fornecedor.cpf_cnpj }}</div>{% endif %}
+        <div>{{ pedido.fornecedor.cidade }} - {{ pedido.fornecedor.estado }}</div>
+    </div>
+
+    <div class="section-title">2. Condições Gerais</div>
+    <table width="100%" cellpadding="5">
+        <tr>
+            <td width="33%">
+                <strong>Data do Pedido:</strong><br>
+                {{ pedido.data_pedido|date:"d/m/Y" }}
+            </td>
+            <td width="33%">
+                <strong>Previsão de Entrega:</strong><br>
+                {{ pedido.data_prevista|date:"d/m/Y"|default:"-" }}
+            </td>
+            <td width="33%">
+                <strong>Status:</strong><br>
+                {{ pedido.get_status_display }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-title">3. Detalhamento dos Produtos</div>
+    <table class="items">
+        <thead>
+            <tr>
+                <th class="col-prod">Produto</th>
+                <th class="col-qty">Quantidade</th>
+                <th class="col-unit">Unidade</th>
+                <th class="col-price">Valor Unit.</th>
+                <th class="col-total">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in pedido.itens.all %}
+            <tr>
+                <td class="col-prod">{{ item.produto.nome }}</td>
+                <td class="col-qty">{{ item.quantidade|floatformat:2 }}</td>
+                <td class="col-unit">{{ item.produto.unidade }}</td>
+                <td class="col-price">R$ {{ item.valor_unitario|floatformat:2 }}</td>
+                <td class="col-total">R$ {{ item.valor_total|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="4" style="text-align: right; padding-right: 10px;">TOTAL DO PEDIDO</td>
+                <td class="col-total">R$ {{ pedido.valor_total|floatformat:2 }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if pedido.observacoes %}
+    <div class="section-title">4. Observações</div>
+    <div style="border: 1px dashed #ccc; padding: 10px; font-size: 9pt;">
+        {{ pedido.observacoes|linebreaks }}
+    </div>
+    {% endif %}
+
+    <div class="signatures">
+        <table width="100%">
+            <tr>
+                <td width="40%" align="center">
+                    <div class="signature-line">
+                        <strong>{{ empresa.nome }}</strong><br>
+                        Comprador
+                    </div>
+                </td>
+                <td width="20%"></td>
+                <td width="40%" align="center">
+                    <div class="signature-line">
+                        <strong>{{ pedido.fornecedor.nome }}</strong><br>
+                        Fornecedor
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div id="footerContent">
+        Documento gerado eletronicamente em {{ data_atual|date:"d/m/Y H:i" }}
+    </div>
+</body>
+</html>

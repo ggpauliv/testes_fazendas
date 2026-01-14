@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Financeiro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 fw-bold">Gestão Financeira</h1>
+            <p class="text-muted">Visão geral de contas e fluxos</p>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Contas a Pagar (Vencidas) -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-danger border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-2 me-3">
+                            <i class="bi bi-clock-history text-danger fs-4"></i>
+                        </div>
+                        <h6 class="card-subtitle text-muted mb-0">Pagar Vencidas</h6>
+                    </div>
+                    <h2 class="card-title fw-bold mb-0">R$ {{ pagar_total|floatformat:2 }}</h2>
+                    <small class="text-danger fw-semibold">{{ pagar_vencidas_count }} contas em atraso</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contas a Receber (Vencidas) -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
+                            <i class="bi bi-arrow-down-left-circle text-success fs-4"></i>
+                        </div>
+                        <h6 class="card-subtitle text-muted mb-0">Receber Vencidas</h6>
+                    </div>
+                    <h2 class="card-title fw-bold mb-0">R$ {{ receber_total|floatformat:2 }}</h2>
+                    <small class="text-success fw-semibold">{{ receber_vencidas_count }} contas em atraso</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hoje Pagar -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-warning border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-3">
+                            <i class="bi bi-calendar-event text-warning fs-4"></i>
+                        </div>
+                        <h6 class="card-subtitle text-muted mb-0">Vencem Hoje (Pagar)</h6>
+                    </div>
+                    <h2 class="card-title fw-bold mb-0">{{ pagar_hoje_count }}</h2>
+                    <small class="text-muted">Contas para hoje</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hoje Receber -->
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-info border-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3">
+                            <i class="bi bi-calendar-check text-info fs-4"></i>
+                        </div>
+                        <h6 class="card-subtitle text-muted mb-0">Vencem Hoje (Receber)</h6>
+                    </div>
+                    <h2 class="card-title fw-bold mb-0">{{ receber_hoje_count }}</h2>
+                    <small class="text-muted">Entradas previstas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-5">
+        <div class="col-md-4">
+            <div class="d-grid gap-2">
+                <a href="{% url 'conta_pagar_list' %}" class="btn btn-outline-danger btn-lg py-3 shadow-sm border-2">
+                    <i class="bi bi-cash-stack me-2"></i>Ver Contas a Pagar
+                </a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="d-grid gap-2">
+                <a href="{% url 'conta_receber_list' %}" class="btn btn-outline-success btn-lg py-3 shadow-sm border-2">
+                    <i class="bi bi-cash-coin me-2"></i>Ver Contas a Receber
+                </a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="d-grid gap-2">
+                <a href="{% url 'financeiro_config' %}" class="btn btn-outline-primary btn-lg py-3 shadow-sm border-2">
+                    <i class="bi bi-gear-fill me-2"></i>Configurações
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

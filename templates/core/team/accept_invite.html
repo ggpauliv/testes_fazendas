@@ -1,0 +1,107 @@
+{% extends 'layouts/base_auth.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}Convite Especial | Pauliv Sistemas{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .invite-card {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+    }
+    .invite-header {
+        background: #fff;
+        padding: 40px 40px 20px;
+        text-align: center;
+        border-bottom: 3px solid #0d6efd;
+    }
+    .logo-img {
+        max-width: 200px;
+        height: auto;
+        margin-bottom: 20px;
+    }
+    .invite-body {
+        padding: 30px 40px 40px;
+    }
+    .badge-role {
+        font-size: 0.9rem;
+        padding: 8px 16px;
+        border-radius: 50px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 500px;">
+    <div class="card invite-card">
+        <div class="invite-header">
+            <img src="{% static 'img/logo_pauliv.png' %}" alt="Pauliv Sistemas" class="logo-img">
+            <h4 class="fw-bold text-dark mb-0">Convite para Equipe</h4>
+            <p class="text-muted mt-2 mb-0">Você foi convidado(a)!</p>
+        </div>
+        
+        <div class="invite-body">
+            <div class="text-center mb-4">
+                <h6 class="text-muted">Empresa</h6>
+                <h3 class="fw-bold text-primary">{{ invitation.empresa.nome }}</h3>
+                <span class="badge bg-info text-dark badge-role mt-2">{{ invitation.get_role_display }}</span>
+            </div>
+
+            <div class="alert alert-light border text-center mb-4">
+                <i class="bi bi-envelope-check me-2"></i>Convite enviado para:<br>
+                <strong>{{ invitation.email }}</strong>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                
+                <h5 class="border-bottom pb-2 mb-3 text-secondary">Crie sua conta</h5>
+
+                <div class="mb-3">
+                    <label for="username" class="form-label">Nome de Usuário</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" id="username" name="username" required placeholder="Ex: joaosilva" autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Senha</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="password_confirm" class="form-label">Confirmar Senha</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password_confirm" name="password_confirm" required>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                        <i class="bi bi-check-circle-fill me-2"></i> Aceitar e Entrar
+                    </button>
+                    <p class="text-center text-muted mt-3 small">
+                        Ao continuar, você concorda com a política de privacidade da Pauliv Sistemas.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

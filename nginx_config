@@ -1,0 +1,14 @@
+server {
+    listen 80;
+    server_name 191.252.178.97 hkfazendas.com www.hkfazendas.com;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        alias /home/gestor/site/staticfiles/;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/home/gestor/site/gestor.sock;
+    }
+}

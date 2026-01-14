@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Contas a Receber{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 fw-bold"><i class="bi bi-cash-coin text-success me-2"></i>Contas a Receber</h1>
+                <p class="text-muted mb-0">Gestão de recebimentos e vendas a prazo</p>
+            </div>
+            <div>
+                <a href="{% url 'conta_receber_create' %}" class="btn btn-success btn-lg">
+                    <i class="bi bi-plus-circle me-2"></i>Nova Receita
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-3">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Todos os Status</option>
+                        <option value="PENDENTE" {% if status_filtro == 'PENDENTE' %}selected{% endif %}>Pendente</option>
+                        <option value="PARCIAL" {% if status_filtro == 'PARCIAL' %}selected{% endif %}>Recebido Parcial</option>
+                        <option value="PAGO" {% if status_filtro == 'PAGO' %}selected{% endif %}>Recebido/Liquidado</option>
+                        <option value="CANCELADO" {% if status_filtro == 'CANCELADO' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            {% if contas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Vencimento</th>
+                            <th>Descrição / Cliente</th>
+                            <th>Categoria</th>
+                            <th class="text-end">Valor Total</th>
+                            <th class="text-end">Saldo Restante</th>
+                            <th>Status</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conta in contas %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold {% if conta.status != 'PAGO' and conta.data_vencimento < today %}text-danger{% endif %}">
+                                    {{ conta.data_vencimento|date:"d/m/Y" }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ conta.descricao }}</div>
+                                <small class="text-muted">{{ conta.cliente.nome|default:"-" }}</small>
+                                {% if conta.fixacao_origem %}
+                                <div class="mt-1">
+                                    <span class="badge bg-light text-success border border-success-subtle">
+                                        <i class="bi bi-link-45deg"></i> Origem: Fixação #{{ conta.fixacao_origem.id }}
+                                    </span>
+                                </div>
+                                {% elif conta.contrato_origem %}
+                                <div class="mt-1">
+                                    <span class="badge bg-light text-info border border-info-subtle">
+                                        <i class="bi bi-link-45deg"></i> Origem: Contrato #{{ conta.contrato_origem.id }}
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td><small class="badge bg-light text-dark">{{ conta.categoria.nome }}</small></td>
+                            <td class="text-end fw-bold">R$ {{ conta.valor_total|floatformat:2 }}</td>
+                            <td class="text-end text-success">R$ {{ conta.saldo_restante|floatformat:2 }}</td>
+                            <td>
+                                {% if conta.status == 'PAGO' %}
+                                    <span class="badge bg-success">Recebido</span>
+                                {% elif conta.status == 'PARCIAL' %}
+                                    <span class="badge bg-warning text-dark">Parcial</span>
+                                {% elif conta.status == 'PENDENTE' %}
+                                    <span class="badge bg-secondary">Pendente</span>
+                                {% else %}
+                                    <span class="badge bg-dark">{{ conta.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    {% if conta.status != 'PAGO' %}
+                                    <a href="{% url 'conta_receber_baixa' conta.pk %}" class="btn btn-sm btn-outline-success" title="Registrar Recebimento">
+                                        <i class="bi bi-piggy-bank"></i> Baixa
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'conta_receber_edit' conta.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-cash-coin text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Nenhuma conta encontrada</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

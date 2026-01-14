@@ -1,0 +1,122 @@
+{% extends 'base.html' %} 
+
+{% block title %}Posição de Estoque | Gestor Talhão{% endblock %} 
+
+{% block content %} 
+<div class="container-fluid py-4"> 
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4"> 
+        <h1 class="h3 mb-0 text-gray-800">
+            Posição Atual de Estoque (Insumos)
+            {% if fazenda_selecionada %} - {{ fazenda_selecionada.nome }}{% endif %}
+        </h1> 
+        
+        <div>
+            <button class="btn btn-outline-primary me-2" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Imprimir
+            </button>
+        </div>
+    </div> 
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            {% load crispy_forms_tags %}
+            {% crispy form %}
+        </div>
+    </div>
+
+    <!-- Cards de Resumo -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Valor Total (R$)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">R$ {{ valor_total_geral|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-currency-dollar fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Valor Total (Sacas)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ valor_total_sacas|floatformat:2 }} sc</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-box-seam fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Informação</div>
+                            <div class="mb-0 text-gray-800 small">
+                                Valor calculado com base no <strong>Preço Médio</strong> de compra e convertido pelo preço de referência.
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="bi bi-info-circle fa-2x text-gray-300 fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Detalhada -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Detalhamento por Produto</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Categoria</th>
+                            <th>Produto</th>
+                            <th>Saldo Atual</th>
+                            <th>Unidade</th>
+                            <th>Custo Médio (R$)</th>
+                            <th>Total (R$)</th>
+                            <th>Total (sc)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dados %}
+                        <tr>
+                            <td>{{ item.produto.get_categoria_display }}</td>
+                            <td>{{ item.produto.nome }}</td>
+                            <td class="fw-bold">{{ item.saldo|floatformat:2 }}</td>
+                            <td>{{ item.unidade }}</td>
+                            <td>R$ {{ item.valor_unitario|floatformat:4 }}</td>
+                            <td class="fw-bold">R$ {{ item.valor_total|floatformat:2 }}</td>
+                            <td class="text-success fw-bold">{{ item.valor_sacas|floatformat:2 }} sc</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">Estoque zerado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div> 
+{% endblock %} 

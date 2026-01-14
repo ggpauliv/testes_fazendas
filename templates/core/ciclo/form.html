@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ciclo_list' %}">Ciclos</a></li>
+                    <li class="breadcrumb-item active">{{ titulo }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold"><i class="bi bi-calendar-range text-primary me-2"></i>{{ titulo }}</h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    {% crispy form %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Parse talhoes_json - handle cases where it might be empty or invalid safely
+        let talhoesData = [];
+        try {
+            talhoesData = JSON.parse('{{ talhoes_json|safe }}');
+        } catch (e) {
+            console.error("Erro ao processar dados dos talhões:", e);
+        }
+
+        let busyTalhoes = {};
+        try {
+            busyTalhoes = JSON.parse('{{ busy_talhoes_json|safe }}');
+        } catch (e) {
+            console.error("Erro ao processar talhões ocupados:", e);
+        }
+
+        const safraSelector = document.getElementById('id_safra');
+        const fazendaSelector = document.getElementById('id_fazenda_selector');
+        const talhaoSelector = document.getElementById('id_talhao_selector');
+        const btnAdd = document.getElementById('btn-add-talhao');
+        const tableBody = document.querySelector('#table-talhoes-selecionados tbody');
+        const hiddenSelect = document.getElementById('id_talhoes');
+        
+        const inputCultura = document.getElementById('id_cultura');
+        const inputScHa = document.getElementById('id_producao_estimada_sc_ha');
+        const inputPrecoEstimado = document.getElementById('id_preco_venda_estimado_sc');
+        
+        const displayAreaTotal = document.getElementById('display-area-total');
+        const displayProducaoTotal = document.getElementById('display-producao-total');
+
+        if (!fazendaSelector || !talhaoSelector || !btnAdd || !tableBody || !hiddenSelect) {
+            console.error("Elementos do formulário não encontrados.");
+            return;
+        }
+
+        // Mapeamento para acesso rápido
+        const talhoesMap = {};
+        talhoesData.forEach(t => { talhoesMap[t.id] = t; });
+
+        // Helper: Pega todos os IDs selecionados no formulário agora
+        function getSelectedIds() {
+            return Array.from(hiddenSelect.options)
+                .filter(opt => opt.selected)
+                .map(opt => parseInt(opt.value));
+        }
+
+        // Helper: Verifica se um talhão ou qualquer um de seus ancestrais/descendentes está ocupado na Safra
+        function getOccupiedReason(targetId, safraId) {
+            const sid = parseInt(safraId);
+            const selectedIds = getSelectedIds();
+
+            // 1. Verificar o próprio talhão
+            if (selectedIds.includes(targetId)) return "já selecionado neste ciclo";
+            if (busyTalhoes[targetId] && busyTalhoes[targetId].includes(sid)) return "já ocupado em outro ciclo desta safra";
+
+            // 2. Verificar Ancestrais (Subindo na árvore)
+            let current = talhoesMap[targetId];
+            while (current && current.parent_id) {
+                const pid = current.parent_id;
+                if (selectedIds.includes(pid)) return `o talhão pai "${talhoesMap[pid].nome}" já está selecionado`;
+                if (busyTalhoes[pid] && busyTalhoes[pid].includes(sid)) return `o talhão pai "${talhoesMap[pid].nome}" já está ocupado nesta safra`;
+                current = talhoesMap[pid];
+            }
+
+            // 3. Verificar Descendentes (Descendo na árvore - Recursivo)
+            function checkDescendants(pid) {
+                const children = talhoesData.filter(t => t.parent_id == pid);
+                for (let child of children) {
+                    if (selectedIds.includes(child.id)) return `o subtalhão "${child.nome}" já está selecionado`;
+                    if (busyTalhoes[child.id] && busyTalhoes[child.id].includes(sid)) return `o subtalhão "${child.nome}" já está ocupado nesta safra`;
+                    
+                    const reason = checkDescendants(child.id);
+                    if (reason) return reason;
+                }
+                return null;
+            }
+
+            return checkDescendants(targetId);
+        }
+
+        // 1. Filtrar talhões ao mudar a fazenda ou safra
+        function refreshTalhaoOptions() {
+            const fazendaId = fazendaSelector.value;
+            const safraId = safraSelector.value;
+            talhaoSelector.innerHTML = '<option value="">Selecione o Talhão</option>';
+            
+            if (!fazendaId) {
+                talhaoSelector.innerHTML = '<option value="">Selecione a Fazenda primeiro</option>';
+                return;
+            }
+            if (!safraId) {
+                talhaoSelector.innerHTML = '<option value="">Selecione a Safra primeiro</option>';
+                return;
+            }
+
+            const filtrados = talhoesData.filter(t => t.fazenda_id == fazendaId);
+            const disponiveis = filtrados.filter(t => !getOccupiedReason(t.id, safraId));
+
+            if (disponiveis.length > 0) {
+                disponiveis.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.nome;
+                    talhaoSelector.appendChild(option);
+                });
+            } else if (filtrados.length > 0) {
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "Todos os talhões desta fazenda já estão ocupados";
+                talhaoSelector.appendChild(option);
+            } else {
+                const option = document.createElement('option');
+                option.value = "";
+                option.textContent = "Nenhum talhão ativo nesta fazenda";
+                talhaoSelector.appendChild(option);
+            }
+        }
+
+        fazendaSelector.addEventListener('change', refreshTalhaoOptions);
+        safraSelector.addEventListener('change', refreshTalhaoOptions);
+
+        // 2. Adicionar talhão à lista
+        btnAdd.addEventListener('click', function() {
+            const talhaoId = parseInt(talhaoSelector.value);
+            if (!talhaoId) {
+                alert('Por favor, selecione um talhão.');
+                return;
+            }
+
+            const safraId = safraSelector.value;
+            if (!safraId) {
+                alert('Por favor, selecione a safra antes de adicionar talhões.');
+                return;
+            }
+
+            const talhao = talhoesMap[talhaoId];
+            if (!talhao) return;
+
+            // Validação Recursiva de Ocupação e Hierarquia
+            const reason = getOccupiedReason(talhaoId, safraId);
+            if (reason) {
+                alert(`Não é possível adicionar "${talhao.nome}": ${reason}.`);
+                return;
+            }
+
+            adicionarTalhao(talhaoId);
+            talhaoSelector.value = '';
+        });
+
+        function adicionarTalhao(id) {
+            const talhao = talhoesMap[id];
+            if (!talhao) {
+                const originalOpt = Array.from(hiddenSelect.options).find(o => o.value == id);
+                if (originalOpt) {
+                    const fakeTalhao = {
+                        id: id,
+                        nome: originalOpt.text,
+                        fazenda__nome: 'Carregado',
+                        area_hectares: 0
+                    };
+                    renderRow(fakeTalhao);
+                }
+                return;
+            }
+            renderRow(talhao);
+
+            let opt = Array.from(hiddenSelect.options).find(o => o.value == id);
+            if (!opt) {
+                opt = new Option(talhao.nome, talhao.id, true, true);
+                hiddenSelect.add(opt);
+            }
+            opt.selected = true;
+            updateTotals();
+            refreshTalhaoOptions();
+        }
+
+        function renderRow(talhao) {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', talhao.id);
+            row.innerHTML = `
+                <td>${talhao.fazenda__nome || '-'}</td>
+                <td>${talhao.nome}</td>
+                <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-talhao">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+
+            row.querySelector('.btn-remove-talhao').addEventListener('click', function() {
+                removerTalhao(talhao.id, row);
+            });
+        }
+
+        function removerTalhao(id, row) {
+            row.remove();
+            const opt = Array.from(hiddenSelect.options).find(o => o.value == id);
+            if (opt) opt.selected = false;
+            updateTotals();
+            refreshTalhaoOptions();
+        }
+
+        // 3. Cálculos Dinâmicos
+        function updateTotals() {
+            let totalArea = 0;
+            const selectedIds = getSelectedIds();
+            
+            selectedIds.forEach(id => {
+                const talhao = talhoesMap[id];
+                if (talhao) {
+                    totalArea += parseFloat(talhao.area_hectares || 0);
+                }
+            });
+
+            const scHa = parseFloat(inputScHa.value || 0);
+            const producaoTotal = totalArea * scHa;
+
+            if (displayAreaTotal) displayAreaTotal.textContent = totalArea.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + ' ha';
+            if (displayProducaoTotal) displayProducaoTotal.textContent = producaoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' sc';
+        }
+
+        inputScHa.addEventListener('input', updateTotals);
+
+        // 4. Preço Automático via API
+        if (inputCultura) {
+            inputCultura.addEventListener('change', function() {
+                const cultura = this.value.trim().toLowerCase();
+                if (!cultura) return;
+
+                fetch('/api/market-data/')
+                    .then(response => response.json())
+                    .then(data => {
+                        const commodity = data.find(c => c.name.toLowerCase().includes(cultura));
+                        if (commodity && commodity.price) {
+                            inputPrecoEstimado.value = commodity.price.toFixed(2);
+                        }
+                    })
+                    .catch(error => console.error('Erro ao buscar cotações:', error));
+            });
+        }
+
+        // 5. Inicializar se houver talhões selecionados (Edição)
+        function inicializar() {
+            // Se tivermos uma fazenda_id (passada pelo contexto no Edit)
+            const initialFazendaId = "{{ fazenda_id|default:'' }}";
+            if (initialFazendaId && fazendaSelector) {
+                fazendaSelector.value = initialFazendaId;
+                // Disparar evento de mudança para carregar os talhões no dropdown
+                fazendaSelector.dispatchEvent(new Event('change'));
+            }
+
+            Array.from(hiddenSelect.options).forEach(opt => {
+                if (opt.selected) {
+                    adicionarTalhao(opt.value);
+                }
+            });
+            updateTotals();
+        }
+
+        inicializar();
+    });
+</script>
+{% endblock %}

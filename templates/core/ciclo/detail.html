@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ ciclo.safra.nome|default:"Ciclo" }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ciclo_list' %}">Ciclos</a></li>
+                    <li class="breadcrumb-item active">{{ ciclo.safra.nome|default:"Ciclo" }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 fw-bold">
+                        <i class="bi bi-calendar-range text-primary me-2"></i>{{ ciclo.safra.nome|default:"Ciclo Sem Nome" }}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        {{ ciclo.cultura }} |
+                        {% for talhao in ciclo.talhoes.all %}
+                            {{ talhao.nome }}{% if not forloop.last %}, {% endif %}
+                        {% empty %}
+                            Sem talhão
+                        {% endfor %}
+                        |
+                        {% if ciclo.status == 'PLANEJAMENTO' %}
+                        <span class="badge bg-secondary">Em Planejamento</span>
+                        {% elif ciclo.status == 'EM_ANDAMENTO' %}
+                        <span class="badge bg-primary">Em Andamento</span>
+                        {% elif ciclo.status == 'CONCLUIDO' %}
+                        <span class="badge bg-success">Concluído</span>
+                        {% else %}
+                        <span class="badge bg-danger">Cancelado</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'ciclo_edit' ciclo.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </a>
+                    <a href="{% url 'operacao_create' %}" class="btn btn-success">
+                        <i class="bi bi-plus-circle me-1"></i>Nova Operação
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de ROI -->
+    <div class="row g-4 mb-4">
+        <div class="col-xl-2 col-md-4">
+            <div class="card card-stat bg-gradient-danger text-white h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase mb-1 opacity-75">Custo Total</h6>
+                    <h3 class="mb-0 fw-bold">R$ {{ custo_total|floatformat:2 }}</h3>
+                    <small class="opacity-75">{{ custo_total_sacas|floatformat:2 }} sc</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="card card-stat bg-gradient-primary text-white h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase mb-1 opacity-75">Receita Estimada</h6>
+                    <h3 class="mb-0 fw-bold">R$ {{ receita_estimada|floatformat:2 }}</h3>
+                    <small class="opacity-75">{{ receita_estimada_sacas|floatformat:2 }} sc</small>
+                </div>
+            </div>
+        </div>
+        <!-- Card Lucro Mercado -->
+        <div class="col-xl-2 col-md-4">
+            <div id="market-profit-card" class="card card-stat bg-secondary text-white h-100">
+                <div class="card-body text-center position-relative">
+                    <h6 class="text-uppercase mb-1 opacity-75">Lucro (Mercado)</h6>
+                    <h3 id="market-profit-val" class="mb-0 fw-bold">...</h3>
+                    <small id="market-price-ref" class="d-block mt-2 opacity-75" style="font-size: 0.7em;">Buscando cotação...</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div
+                class="card card-stat {% if lucro_estimado >= 0 %}bg-gradient-success{% else %}bg-gradient-danger{% endif %} text-white h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase mb-1 opacity-75">Lucro Estimado</h6>
+                    <h3 class="mb-0 fw-bold">R$ {{ lucro_estimado|floatformat:2 }}</h3>
+                    <small class="opacity-75">{{ lucro_estimado_sacas|floatformat:2 }} sc</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="card card-stat bg-gradient-info text-white h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase mb-1 opacity-75">ROI</h6>
+                    <h3 class="mb-0 fw-bold">{{ roi|floatformat:1 }}%</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-2 col-md-4">
+            <div class="card card-stat bg-gradient-warning text-white h-100">
+                <div class="card-body text-center">
+                    <h6 class="text-uppercase mb-1 opacity-75">Receita Real</h6>
+                    <h3 class="mb-0 fw-bold">R$ {{ receita_real|floatformat:2 }}</h3>
+                    <small class="opacity-75">{{ receita_real_sacas|floatformat:2 }} sc</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Informações do Ciclo -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-info"></i>Informações</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-7">Área Total</dt>
+                        <dd class="col-5">{{ ciclo.area_total_ha|floatformat:2 }} ha</dd>
+
+                        <dt class="col-7">Cultura</dt>
+                        <dd class="col-5">{{ ciclo.cultura }}</dd>
+
+                        <dt class="col-7">Prod. Est. (sc/ha)</dt>
+                        <dd class="col-5">{{ ciclo.producao_estimada_sc_ha|floatformat:2 }}</dd>
+
+                        <dt class="col-7">Prod. Total Est. (sc)</dt>
+                        <dd class="col-5 fw-bold text-success">{{ ciclo.producao_total_estimada_sc|floatformat:0 }}</dd>
+
+                        <dt class="col-7">P. Venda Est.</dt>
+                        <dd class="col-5">R$ {{ ciclo.preco_venda_estimado_sc|floatformat:2 }}</dd>
+
+                        <dt class="col-7">Data Plantio</dt>
+                        <dd class="col-5">{{ ciclo.data_plantio|date:"d/m/Y" }}</dd>
+
+                        <dt class="col-7">Data Fim</dt>
+                        <dd class="col-5">{{ ciclo.data_fim|date:"d/m/Y"|default:"-" }}</dd>
+
+                        <hr class="my-2">
+
+                        <dt class="col-7">Prod. Real Total (sc)</dt>
+                        <dd class="col-5">{{ ciclo.producao_real_saca|floatformat:0|default:"0" }}</dd>
+                    </dl>
+
+                    {% if ciclo.observacoes %}
+                    <hr>
+                    <p class="text-muted small mb-0"><strong>Observações:</strong><br>{{ ciclo.observacoes }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Operações do Ciclo -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-gear me-2 text-warning"></i>Operações do Ciclo</h5>
+                    <a href="{% url 'operacao_create' %}" class="btn btn-sm btn-success">
+                        <i class="bi bi-plus me-1"></i>Nova Operação
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if operacoes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Produto</th>
+                                    <th class="text-end">Quantidade</th>
+                                    <th class="text-end">Custo Est.</th>
+                                    <th>Data</th>
+                                    <th>Responsável</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for op in operacoes %}
+                                <tr>
+                                    <td><span class="badge bg-light text-dark">{{ op.get_tipo_operacao_display }}</span>
+                                    </td>
+                                    <td>{{ op.produto.nome }}</td>
+                                    <td class="text-end">{{ op.quantidade_aplicada|floatformat:2 }} {{ op.produto.unidade }}</td>
+                                    <td class="text-end">R$ {{ op.custo_operacao|floatformat:2 }}</td>
+                                    <td>{{ op.data_operacao|date:"d/m/Y" }}</td>
+                                    <td class="text-muted">{{ op.responsavel|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Total:</td>
+                                    <td class="text-end fw-bold">R$ {{ custo_total|floatformat:2 }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-gear fs-1"></i>
+                        <p class="mt-2 mb-0">Nenhuma operação registrada neste ciclo</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const cultura = "{{ ciclo.cultura|lower }}";
+        const prodEstimada = parseFloat("{{ ciclo.producao_total_estimada_sc }}".replace(',', '.'));
+        const custoTotal = parseFloat("{{ custo_total }}".replace(',', '.'));
+
+        const cardVal = document.getElementById('market-profit-val');
+        const cardRef = document.getElementById('market-price-ref');
+        const cardBox = document.getElementById('market-profit-card');
+
+        if (!cardVal) return;
+
+        if (!prodEstimada || prodEstimada <= 0) {
+            cardVal.textContent = "R$ 0,00";
+            cardRef.textContent = "Sem produção est.";
+            return;
+        }
+
+        fetch('/api/market-data/')
+            .then(response => response.json())
+            .then(data => {
+                const commodities = data || []; // API retornada é array direto agora no AgroTalhoes
+                let precoMercado = 0;
+                let nomeCommodity = "";
+
+                // Mapeamento
+                const map = {
+                    'soja': 'Soja',
+                    'milho': 'Milho',
+                    'trigo': 'Trigo',
+                    'boi': 'Boi Gordo'
+                };
+
+                const targetKey = Object.keys(map).find(key => cultura.includes(key));
+                const targetName = map[targetKey];
+
+                if (!targetName) {
+                    cardVal.textContent = "N/A";
+                    cardRef.textContent = `Sem cotação para: ${cultura}`;
+                    return;
+                }
+
+                const commodity = commodities.find(c => c.name.includes(targetName));
+                if (commodity && commodity.price) {
+                    precoMercado = commodity.price;
+                    nomeCommodity = commodity.name;
+
+                    const receitaMercado = prodEstimada * precoMercado;
+                    const lucroMercado = receitaMercado - custoTotal;
+
+                    cardVal.textContent = lucroMercado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    cardRef.textContent = `Base: ${nomeCommodity} R$ ${precoMercado}/sc`;
+
+                    cardBox.classList.remove('bg-secondary');
+                    cardBox.classList.add(lucroMercado >= 0 ? 'bg-gradient-success' : 'bg-gradient-danger');
+                } else {
+                    cardVal.textContent = "Indisponível";
+                    cardRef.textContent = `Preço não encontrado.`;
+                }
+            })
+            .catch(err => {
+                console.error("Erro ao buscar cotação:", err);
+                cardVal.textContent = "Erro";
+                cardRef.textContent = "Falha na conexão";
+            });
+    });
+</script>
+{% endblock %}

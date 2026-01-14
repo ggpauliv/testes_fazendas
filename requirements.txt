@@ -1,0 +1,36 @@
+# Django Framework
+Django>=4.2,<5.0
+
+# SQL Server Backend para Django (Mantido para compatibilidade local/migração)
+mssql-django>=1.3
+
+# Driver ODBC para Python
+pyodbc>=5.0
+
+# Parser de XML (para NFe)
+xmltodict>=0.13
+
+# Formulários bonitos com Bootstrap
+django-crispy-forms>=2.1
+crispy-bootstrap5>=2023.10
+
+# Variáveis de ambiente
+python-dotenv>=1.0
+
+# Utilitários
+python-dateutil>=2.8
+
+# Dados Financeiros / Mercado
+requests>=2.31.0
+
+# PostgreSQL (Produção)
+psycopg2-binary>=2.9.9
+
+# Geração de PDF (Relatórios)
+xhtml2pdf>=0.2.15
+
+# Imagens (Logos e uploads)
+Pillow>=10.0.0
+
+# Servidor de Aplicação (Produção)
+gunicorn>=21.2.0

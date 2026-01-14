@@ -1,0 +1,328 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ titulo }} | Gestor Talhão{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <h1 class="h3 mb-0 text-gray-800">{{ titulo }}</h1>
+        <a href="{% url 'contrato_list' %}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="contrato-form">
+                {% csrf_token %}
+                {% crispy form %}
+
+                <!-- Itens do Contrato -->
+                <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+                    <h5 class="mb-0 fw-bold">Itens do Contrato</h5>
+                    <button type="button" class="btn btn-sm btn-primary" id="add-item"><i class="bi bi-plus-lg me-1"></i>Adicionar Item</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle" id="itens-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 20%">Produto</th>
+                                <th style="width: 20%">Fazenda (Opcional)</th>
+                                <th style="width: 10%" class="text-end">Quantidade</th>
+                                <th style="width: 10%" class="text-center">Unidade</th>
+                                <th style="width: 15%" class="text-end">Valor Unit. (R$)</th>
+                                <th style="width: 15%" class="text-end">Total (R$)</th>
+                                <th style="width: 10%" class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                        <tfoot>
+                            <tr class="table-active fw-bold">
+                                <td colspan="5" class="text-end">Total do Contrato:</td>
+                                <td class="text-end" id="display-total-contrato">0,00</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-end mt-4">
+                    <button type="submit" class="btn btn-success px-4" id="btn-save"><i class="bi bi-save me-1"></i>Salvar Contrato</button>
+                    {% if contrato %}
+                    <button type="button" class="btn btn-danger ms-2 px-4" data-bs-toggle="modal" data-bs-target="#deleteModal"><i class="bi bi-trash me-1"></i>Excluir</button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    {% if contrato %}
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir o contrato <strong>#{{ contrato.id }}</strong>?</p>
+                    <div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-1"></i>Isso excluirá permanentemente o contrato e todos os seus itens.</div>
+                    <form action="{% url 'contrato_delete' contrato.pk %}" method="post" id="form-delete">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-danger">Excluir Permanentemente</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- New Product Modal -->
+    <div class="modal fade" id="newProductModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Novo Produto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome do Produto*</label>
+                            <input type="text" class="form-control" id="new-product-nome" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Código</label>
+                            <input type="text" class="form-control" id="new-product-codigo" placeholder="Código interno ou NCM">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Categoria</label>
+                            <select class="form-select" id="new-product-categoria">
+                                <option value="">Outros</option>
+                                {% for value, label in categorias_produto %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Unidade de Medida*</label>
+                            <select class="form-select" id="new-product-unidade">
+                                <option value="KG">KG</option>
+                                <option value="UN">UN</option>
+                                <option value="LT">LT</option>
+                                <option value="SC">SC</option>
+                                <option value="TON">TON</option>
+                            </select>
+                            <small class="text-muted">Ex: KG, L, UN, SC</small>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Estoque Mínimo*</label>
+                            <input type="number" class="form-control" id="new-product-estoque" value="0" min="0">
+                        </div>
+                        <div class="col-md-4 pt-4">
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="new-product-ativo" checked>
+                                <label class="form-check-label" for="new-product-ativo">Ativo</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="new-product-error" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="btn-save-new-product"><i class="bi bi-check-lg me-1"></i>Salvar Produto</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addBtn = document.getElementById('add-item');
+    const tableBody = document.querySelector('#itens-table tbody');
+    const itensJsonField = document.getElementById('id_itens_json');
+    const totalDisplay = document.getElementById('display-total-contrato');
+
+    // Aux fields
+    const auxProduto = document.getElementById('id_aux_produto');
+    const auxFazenda = document.getElementById('id_aux_fazenda');
+    const auxQtd = document.getElementById('id_aux_quantidade');
+    const auxUnidade = document.getElementById('id_aux_unidade');
+    const auxValor = document.getElementById('id_aux_valor_unitario');
+
+    let items = [];
+
+    // Load initial data if provided
+    /* eslint-disable */
+{% if itens_json_initial %}
+    // eslint-disable-next-line
+    try {
+        items = JSON.parse('{{ itens_json_initial|escapejs }}');
+        renderItems();
+    } catch (e) {
+        console.error('Erro ao carregar itens iniciais', e);
+    }
+{% endif %}
+/* eslint-enable */
+
+    function formatCurrency(value) {
+        return parseFloat(value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function renderItems() {
+        tableBody.innerHTML = '';
+        let totalContrato = 0;
+        items.forEach((item, index) => {
+            const total = parseFloat(item.quantidade) * parseFloat(item.valor_unitario);
+            totalContrato += total;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${item.produto_nome}</td>
+                <td>${item.fazenda_nome || ''}</td>
+                <td class="text-end">${formatCurrency(item.quantidade)}</td>
+                <td class="text-center">${item.unidade}</td>
+                <td class="text-end">R$ ${formatCurrency(item.valor_unitario)}</td>
+                <td class="text-end fw-bold">R$ ${formatCurrency(total)}</td>
+                <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger btn-remove" data-index="${index}"><i class="bi bi-trash"></i></button></td>
+            `;
+            tableBody.appendChild(row);
+        });
+        totalDisplay.textContent = formatCurrency(totalContrato);
+        itensJsonField.value = JSON.stringify(items);
+    }
+
+    addBtn.addEventListener('click', function () {
+        if (!auxProduto.value) {
+            alert('Selecione um Produto.');
+            return;
+        }
+        if (!auxQtd.value || parseFloat(auxQtd.value) <= 0) {
+            alert('Informe uma quantidade válida.');
+            return;
+        }
+        if (!auxValor.value || parseFloat(auxValor.value) < 0) {
+            alert('Informe um valor unitário válido.');
+            return;
+        }
+
+        const produtoId = auxProduto.value;
+        const produtoNome = auxProduto.options[auxProduto.selectedIndex].text;
+        const fazendaId = auxFazenda.value;
+        const fazendaNome = auxFazenda.options[auxFazenda.selectedIndex]?.text || '';
+        const quantidade = auxQtd.value;
+        const unidade = auxUnidade.value;
+        const valor = auxValor.value;
+
+        items.push({
+            id: null,
+            produto_id: produtoId,
+            produto_nome: produtoNome,
+            fazenda_id: fazendaId || null,
+            fazenda_nome: fazendaNome,
+            quantidade: quantidade,
+            unidade: unidade,
+            valor_unitario: valor
+        });
+        renderItems();
+
+        // Reset aux fields
+        auxProduto.selectedIndex = 0;
+        auxFazenda.selectedIndex = 0;
+        auxQtd.value = '';
+        auxUnidade.selectedIndex = 0;
+        auxValor.value = '';
+    });
+
+    tableBody.addEventListener('click', function (e) {
+        const btn = e.target.closest('.btn-remove');
+        if (btn) {
+            const idx = parseInt(btn.dataset.index);
+            items.splice(idx, 1);
+            renderItems();
+        }
+    });
+
+    // Prevent form submit on Enter in inputs
+    document.getElementById('contrato-form').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+        }
+    });
+
+    // Quick Product Creation Modal
+    const saveProductBtn = document.getElementById('btn-save-new-product');
+    const productModal = new bootstrap.Modal(document.getElementById('newProductModal'));
+    
+    if (saveProductBtn) {
+        saveProductBtn.addEventListener('click', function() {
+            const nome = document.getElementById('new-product-nome').value.trim();
+            const codigo = document.getElementById('new-product-codigo').value.trim();
+            const categoria = document.getElementById('new-product-categoria').value;
+            const unidade = document.getElementById('new-product-unidade').value;
+            const estoque = document.getElementById('new-product-estoque').value;
+            const ativo = document.getElementById('new-product-ativo').checked;
+            const errorDiv = document.getElementById('new-product-error');
+            
+            if (!nome) {
+                errorDiv.textContent = 'Nome do produto é obrigatório.';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+            
+            errorDiv.classList.add('d-none');
+            saveProductBtn.disabled = true;
+            saveProductBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Salvando...';
+            
+            const formData = new FormData();
+            formData.append('nome', nome);
+            formData.append('codigo', codigo);
+            formData.append('categoria', categoria);
+            formData.append('unidade', unidade);
+            formData.append('estoque', estoque);
+            formData.append('ativo', ativo);
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            
+            fetch('{% url "api_produto_quick_create" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new option to produto dropdown
+                    const option = new Option(data.produto.nome, data.produto.id, true, true);
+                    auxProduto.appendChild(option);
+                    auxProduto.value = data.produto.id;
+                    
+                    // Clear modal inputs and close
+                    document.getElementById('new-product-nome').value = '';
+                    productModal.hide();
+                } else {
+                    errorDiv.textContent = data.error || 'Erro ao criar produto.';
+                    errorDiv.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                errorDiv.textContent = 'Erro de conexão.';
+                errorDiv.classList.remove('d-none');
+            })
+            .finally(() => {
+                saveProductBtn.disabled = false;
+                saveProductBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Salvar Produto';
+            });
+        });
+    }
+});
+</script>
+<style>
+    .number-col { font-family: monospace; font-size: 1.1em; }
+</style>
+{% endblock %}

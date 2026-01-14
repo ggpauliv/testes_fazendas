@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Operação #{{ operacao.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'operacao_list' %}">Operações de Campo</a></li>
+                    <li class="breadcrumb-item active">Operação #{{ operacao.id }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <h1 class="h3 fw-bold">
+                        <i class="bi bi-gear text-warning me-2"></i>Operação #{{ operacao.id }}
+                    </h1>
+                    <p class="text-muted mb-0">
+                        Realizada em {{ operacao.data_operacao|date:"d/m/Y" }}
+                    </p>
+                </div>
+                <div>
+                    <a href="{% url 'operacao_edit' operacao.pk %}" class="btn btn-warning">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Resumo da Operação -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2 text-info"></i>Resumo</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-6">Safra/Ciclo</dt>
+                        <dd class="col-6">
+                            {% if operacao.safra %}
+                                {{ operacao.safra.nome }}
+                            {% elif operacao.ciclo %}
+                                {{ operacao.ciclo.safra.nome }} ({{ operacao.ciclo.cultura }})
+                            {% else %}
+                                -
+                            {% endif %}
+                        </dd>
+
+                        <dt class="col-6">Área Aplicada</dt>
+                        <dd class="col-6">{{ operacao.area_aplicada_ha|floatformat:2 }} ha</dd>
+
+                        <dt class="col-6">Status</dt>
+                        <dd class="col-6">
+                            <span class="badge {% if operacao.status == 'APROVADO' %}bg-success{% elif operacao.status == 'PENDENTE' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ operacao.get_status_display }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-6">Responsável</dt>
+                        <dd class="col-6">{{ operacao.responsavel|default:"-" }}</dd>
+
+                        <dt class="col-6">Data de Cadastro</dt>
+                        <dd class="col-6">{{ operacao.data_cadastro|date:"d/m/Y H:i" }}</dd>
+                    </dl>
+                    
+                    {% if operacao.observacao %}
+                    <hr>
+                    <h6>Observações:</h6>
+                    <p class="text-muted small mb-0">{{ operacao.observacao }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Talhões Envolvidos -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-map me-2 text-primary"></i>Talhões Envolvidos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for t in operacao.talhoes.all %}
+                        <a href="{% url 'talhao_detail' t.pk %}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-geo-alt me-1"></i>{{ t.nome }} ({{ t.fazenda.nome }})
+                        </a>
+                        {% empty %}
+                        <p class="text-muted mb-0">Nenhum talhão vinculado.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Itens / Insumos -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2 text-success"></i>Atividades e Insumos</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Atividade</th>
+                                <th>Produto/Descrição</th>
+                                <th class="text-end">Quantidade</th>
+                                <th class="text-end">Custo Unitário</th>
+                                <th class="text-end">Custo Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in operacao.itens.all %}
+                            <tr>
+                                <td>{{ item.atividade.nome }}</td>
+                                <td>
+                                    {% if item.produto %}
+                                        {{ item.produto.nome }}
+                                    {% else %}
+                                        {{ item.descricao|default:"-" }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {{ item.quantidade|floatformat:2 }} 
+                                    {% if item.produto %}{{ item.produto.unidade }}{% endif %}
+                                    <br><small class="text-muted">{% if item.is_quantidade_total %}(Total){% else %}(por ha){% endif %}</small>
+                                </td>
+                                <td class="text-end">R$ {{ item.custo_unitario|floatformat:2 }}</td>
+                                <td class="text-end fw-bold">R$ {{ item.custo_final|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">CUSTO TOTAL DA OPERAÇÃO:</th>
+                                <th class="text-end text-primary h5 fw-bold">R$ {{ operacao.custo_total|floatformat:2 }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,317 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ sistema_config.nome_sistema|default:"Agro Gestor PV" }}{% endblock %} | Gestão de Fazendas
+    </title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="{% static 'css/style.css' %}" rel="stylesheet">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navbar -->
+    {% if not "/login/" in request.path and not "/saas/login/" in request.path %}
+    <nav class="navbar navbar-expand-xl navbar-light bg-white topbar mb-4 static-top shadow">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'dashboard' %}">
+                {% if sistema_config and sistema_config.logo %}
+                <img src="{{ sistema_config.logo.url }}" alt="Logo" height="32" class="me-2 rounded">
+                {% else %}
+                <i class="bi bi-flower1 me-2 fs-4"></i>
+                {% endif %}
+                <span class="fw-bold">{{ sistema_config.nome_sistema|default:"Agro Gestor PV" }}</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'dashboard' %}">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownTalhoes" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-buildings me-1"></i> Fazendas
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'fazenda_list' %}"><i
+                                        class="bi bi-buildings me-2"></i>Listar Fazendas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'fazenda_create' %}"><i
+                                        class="bi bi-plus-circle me-2"></i>Nova Fazenda</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'produtos' in request.path or 'movimentacoes' in request.path %}active{% endif %}"
+                            href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-box-seam me-1"></i> Estoque
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'produto_list' %}"><i
+                                        class="bi bi-box me-2"></i>Produtos</a></li>
+                            <li><a class="dropdown-item" href="{% url 'movimentacao_list' %}"><i
+                                        class="bi bi-arrow-left-right me-2"></i>Movimentações</a></li>
+
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'clientes' in request.path or 'fornecedores' in request.path or 'armazem' in request.path %}active{% endif %}"
+                            href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-people me-1"></i> Cadastros
+                        </a>
+                        <ul class="dropdown-menu shadow border-0">
+                            <li><a class="dropdown-item" href="{% url 'cliente_list' %}"><i
+                                        class="bi bi-person-check me-2"></i>Clientes</a></li>
+                            <li><a class="dropdown-item" href="{% url 'fornecedor_list' %}"><i
+                                        class="bi bi-person-gear me-2"></i>Fornecedores</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'armazem_list' %}"><i
+                                        class="bi bi-building me-2"></i>Taxas de Armazém</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'ciclos' in request.path or 'operacoes' in request.path or 'romaneios' in request.path %}active{% endif %}"
+                            href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-calendar-range me-1"></i> Produção
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'ciclo_list' %}"><i
+                                        class="bi bi-calendar3 me-2"></i>Ciclos/Safras</a></li>
+                            <li><a class="dropdown-item" href="{% url 'romaneio_list' %}"><i
+                                        class="bi bi-receipt me-2"></i>Romaneios</a></li>
+                            <li><a class="dropdown-item" href="{% url 'operacao_list' %}"><i
+                                        class="bi bi-gear me-2"></i>Operações de Campo</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'requisicao_list' %}"><i
+                                        class="bi bi-cart-check me-2"></i>Requisições (Pendentes)</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'contratos' in request.path %}active{% endif %}"
+                            href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-briefcase me-1"></i> Comercial
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'pedido_list' %}"><i
+                                        class="bi bi-basket me-2"></i>Contratos de Compra</a></li>
+                            <li><a class="dropdown-item" href="{% url 'contrato_list' %}"><i
+                                        class="bi bi-file-text me-2"></i>Contratos de Venda</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'fixacao_list' %}"><i
+                                        class="bi bi-tag me-2"></i>Fixações de Preço</a></li>
+                            <li><a class="dropdown-item" href="{% url 'rateio_list' %}"><i
+                                        class="bi bi-pie-chart me-2"></i>Rateio de Custos</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if 'relatorios' in request.path %}active{% endif %}"
+                            href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-graph-up me-1"></i> Relatórios
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'relatorio_producao' %}"><i class="bi bi-speedometer2 me-2"></i>Produtividade</a></li>
+                            <li><a class="dropdown-item" href="{% url 'relatorio_romaneios' %}"><i class="bi bi-truck me-2"></i>Colheita e Qualidade</a></li>
+                            <li><a class="dropdown-item" href="{% url 'relatorio_financeiro' %}"><i class="bi bi-cash-coin me-2"></i>Financeiro</a></li>
+                            <li><a class="dropdown-item" href="{% url 'relatorio_estoque' %}"><i class="bi bi-box-seam me-2"></i>Estoque Atual</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'relatorio_custos' %}"><i class="bi bi-pie-chart-fill me-2"></i>Custos Operacionais</a></li>
+                        </ul>
+                    </li>
+                    {% if user.is_superuser %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-warning fw-bold {% if 'saas' in request.path %}active{% endif %}"
+                            href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-shield-lock me-1"></i> Admin SaaS
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'saas_create_tenant' %}"><i
+                                        class="bi bi-building-add me-2"></i>Cadastrar Empresa</a></li>
+                            <li><a class="dropdown-item" href="{% url 'saas_settings' %}"><i
+                                        class="bi bi-gear me-2"></i>Configurações do Site</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i
+                                        class="bi bi-sliders me-2"></i>Painel Admin (Django)</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle me-1"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'admin:index' %}"><i
+                                        class="bi bi-sliders me-2"></i>Admin</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i
+                                        class="bi bi-box-arrow-right me-2"></i>Sair</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Entrar
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Market Ticker Bar -->
+    {% if user.is_authenticated %}
+    <div class="market-ticker bg-dark text-white py-2 border-bottom border-secondary">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-center align-items-center flex-wrap gap-4" id="market-ticker-content">
+                <span class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>Carregando cotações...</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container-fluid mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {% if message.tags == 'success' %}
+            <i class="bi bi-check-circle me-2"></i>
+            {% elif message.tags == 'error' %}
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {% elif message.tags == 'warning' %}
+            <i class="bi bi-exclamation-circle me-2"></i>
+            {% else %}
+            <i class="bi bi-info-circle me-2"></i>
+            {% endif %}
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-dark text-light">
+        <div class="container text-center">
+            <span class="text-white small">
+                {% if sistema_config and sistema_config.logo %}
+                <img src="{{ sistema_config.logo.url }}" alt="Logo" height="20" class="me-1 rounded">
+                {% else %}
+                <i class="bi bi-flower1 me-1"></i>
+                {% endif %}
+                Pauliv Sistemas &copy; 2025 | Sistema de Gestão de Fazendas
+            </span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Leaflet Draw JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <!-- Leaflet GeometryUtil (para cálculo de área) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Draw já inclui algumas utils, mas vou checar area -->
+
+    <!-- Market Ticker Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tickerContent = document.getElementById('market-ticker-content');
+            if (!tickerContent) return;
+
+            function formatPrice(price) {
+                return price.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function loadMarketData() {
+                fetch('/api/market-data/')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.commodities && data.commodities.length > 0) {
+                            let html = '';
+                            data.commodities.forEach(item => {
+                                const changeClass = item.is_up ? 'text-success' : 'text-danger';
+                                const changeIcon = item.is_up ? 'bi-caret-up-fill' : 'bi-caret-down-fill';
+                                const changeSign = item.is_up ? '+' : '';
+
+                                html += `
+                                <div class="d-flex align-items-center">
+                                    <span class="fw-bold me-2">${item.name}:</span>
+                                    <span class="me-1">${item.unit} ${formatPrice(item.price)}</span>
+                                    <span class="${changeClass} small">
+                                        <i class="bi ${changeIcon}"></i>
+                                        ${changeSign}${item.change.toFixed(2)}%
+                                    </span>
+                                </div>
+                            `;
+                            });
+                            tickerContent.innerHTML = html;
+                        } else if (data.error) {
+                            tickerContent.innerHTML = '<span class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Erro ao carregar cotações</span>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar cotações:', error);
+                        tickerContent.innerHTML = '<span class="text-muted small"><i class="bi bi-wifi-off me-1"></i>Cotações indisponíveis</span>';
+                    });
+            }
+
+            // Load immediately
+            loadMarketData();
+
+            // Refresh every 5 minutes
+            setInterval(loadMarketData, 300000);
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

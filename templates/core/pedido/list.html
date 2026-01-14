@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Contratos de Compra | Gestor Talhão{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="bi bi-cart text-primary me-2"></i>Contratos de Compra</h1>
+        <a href="{% url 'pedido_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Novo Contrato
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-center">
+                <!-- Filtro Fazenda -->
+                <div class="col-md-auto" style="min-width: 250px;">
+                    <div class="input-group flex-nowrap">
+                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                        <select name="fazenda" class="form-select" onchange="this.form.submit()">
+                            <option value="">Todas as Fazendas</option>
+                            {% for f in fazendas %}
+                            <option value="{{ f.id }}" {% if fazenda_selecionada.id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" name="q" class="form-control" placeholder="Buscar fornecedor..." value="{{ request.GET.q|default:'' }}">
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-filter"></i></span>
+                        <select name="status" class="form-select" onchange="this.form.submit()">
+                            <option value="">Todos os Status</option>
+                            {% for val, label in filter_form.fields.status.choices %}
+                                {% if val %}
+                                <option value="{{ val }}" {% if filter_form.status.value == val %}selected{% endif %}>{{ label }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-auto d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary px-3">
+                        <i class="bi bi-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{% url 'pedido_list' %}" class="btn btn-sm btn-outline-secondary px-3">
+                        <i class="bi bi-x-circle me-1"></i>Limpar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fornecedor</th>
+                        <th>Data Pedido</th>
+                        <th>Previsão</th>
+                        <th>Valor Total</th>
+                        <th>Progresso</th>
+                        <th>Status</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr>
+                        <td class="fw-bold">{{ pedido.fornecedor }}</td>
+                        <td>{{ pedido.data_pedido|date:"d/m/Y" }}</td>
+                        <td>{{ pedido.data_prevista|date:"d/m/Y"|default:"-" }}</td>
+                        <td class="fw-bold text-success">R$ {{ pedido.valor_total|floatformat:2 }}</td>
+                        <td style="width: 15%">
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar"
+                                    style="width: {{ pedido.progresso_geral|floatformat:0 }}%"></div>
+                            </div>
+                            <small class="text-muted">{{ pedido.progresso_geral|floatformat:0 }}% Entregue</small>
+                        </td>
+                        <td>
+                            {% if pedido.status == 'ABERTO' %}
+                            <span class="badge bg-primary">Aberto</span>
+                            {% elif pedido.status == 'PARCIAL' %}
+                            <span class="badge bg-warning text-dark">Parcial</span>
+                            {% elif pedido.status == 'CONCLUIDO' %}
+                            <span class="badge bg-success">Concluído</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Cancelado</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'pedido_detail' pedido.pk %}" class="btn btn-sm btn-outline-info" title="Detalhes">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{% url 'pedido_edit' pedido.pk %}" class="btn btn-sm btn-outline-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-delete" 
+                                data-id="{{ pedido.id }}" 
+                                data-name="{{ pedido.fornecedor }}"
+                                title="Excluir">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-cart-x fs-1 d-block mb-3"></i>
+                            Nenhum contrato de compra encontrado
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação -->
+        {% if pedidos.has_other_pages %}
+        <div class="card-footer py-3">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    {% if pedidos.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ pedidos.previous_page_number }}{% if filter_form.status.value %}&status={{ filter_form.status.value }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if fazenda_selecionada %}&fazenda={{ fazenda_selecionada.id }}{% endif %}">&laquo;</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item disabled">
+                        <span class="page-link">Página {{ pedidos.number }} de {{ pedidos.paginator.num_pages }}</span>
+                    </li>
+
+                    {% if pedidos.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                            href="?page={{ pedidos.next_page_number }}{% if filter_form.status.value %}&status={{ filter_form.status.value }}{% endif %}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if fazenda_selecionada %}&fazenda={{ fazenda_selecionada.id }}{% endif %}">&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o pedido <strong id="delete-name"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>Isso excluirá permanentemente o pedido e todos os seus itens.
+                </div>
+                <form method="post" id="form-delete">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Excluir Permanentemente</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const deleteForm = document.getElementById('form-delete');
+        const deleteName = document.getElementById('delete-name');
+        
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const id = this.dataset.id;
+                const name = this.dataset.name;
+                
+                deleteName.textContent = name + ' (#' + id + ')';
+                deleteForm.action = '/pedidos/' + id + '/excluir/';
+                deleteModal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

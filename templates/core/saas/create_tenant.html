@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Cadastrar Nova Empresa | Admin SaaS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4 text-primary">
+                <div class="bg-primary-subtle p-3 rounded-circle me-3">
+                    <i class="bi bi-buildings" style="font-size: 2rem;"></i>
+                </div>
+                <div>
+                    <h1 class="h3 fw-bold mb-0">Cadastrar Nova Empresa (SaaS)</h1>
+                    <p class="text-muted mb-0">Crie uma nova organização e seu administrador no sistema.</p>
+                </div>
+            </div>
+
+            <div class="card shadow border-0 overflow-hidden">
+                <div class="card-header bg-primary py-1"></div>
+                <div class="card-body p-4 p-md-5">
+                    {% if messages %}
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+
+                    <form method="post" class="needs-validation">
+                        {% csrf_token %}
+                        {% crispy form %}
+                    </form>
+                </div>
+                <div class="card-footer bg-light p-4 border-0">
+                    <div class="d-flex align-items-start">
+                        <i class="bi bi-shield-lock-fill text-warning me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h6 class="fw-bold mb-1">Acesso Restrito</h6>
+                            <p class="text-muted small mb-0">
+                                Esta tela é visível apenas para superusuários (Master).
+                                Ao cadastrar uma nova empresa, os dados serão isolados de acordo com a política de
+                                Multi-Tenancy.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
