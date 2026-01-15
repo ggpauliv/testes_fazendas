@@ -30,3 +30,8 @@ Thumbs.db
 # Deploy Artifacts
 *.zip
 *_dump.json
+deploy_app.ps1
+deploy_app.bat
+deploy_putty.bat
+deploy_putty.ps1
+deploy_vps.sh
